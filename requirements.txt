@@ -1,0 +1,11 @@
+# Mini-JARVIS Dependencies
+
+# Core
+python-dotenv>=1.0.0
+
+# HTTP client for Ollama
+httpx>=0.25.0
+
+# Type hints (Python 3.11+ has most, but some extras are useful)
+typing-extensions>=4.8.0
+

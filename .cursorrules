@@ -1,0 +1,12 @@
+# Project Behavior & Standards
+
+1. **Language & Style**: Use Python 3.11+ with type hints. Keep functions small and modular. Prefer `asyncio` for I/O operations.
+
+2. **Privacy First**: This is a local-first project. Sensitive data (video/audio) stays on device unless explicitly flagged for "Cloud Burst".
+
+3. **Secrets**: NEVER hardcode API keys. Use `python-dotenv` and load from `.env`.
+
+4. **Context**: Before making architectural changes or adding new modules, read `.cursor/notepads/architecture.md`.
+
+5. **Constraints**: Always check `.cursor/notepads/technical_specs.md` for hardware limits (Pi 5 16GB) before choosing heavy libraries.
+
