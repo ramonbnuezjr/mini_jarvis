@@ -12,13 +12,13 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 
    - **Eyes:** Pi Camera 3 → Frame Capture → Local Object Detect (YOLO) or Cloud Vision.
 
-2. **The Brain (Orchestrator)**
+2. **The Brain (Orchestrator)** ✅ **IMPLEMENTED**
 
-   - **Router:** Decides "Local vs. Cloud" based on complexity.
+   - **Router:** Decides "Local vs. Cloud" based on complexity, context size, and tool requirements.
 
    - **Local LLM:** Ollama with Llama 3.2 3B for fast, capable chat. If Llama 3.2 3B is insufficient (e.g., complex medical analysis), burst to cloud rather than upgrading to slower local 7B+ models.
 
-   - **Cloud Burst:** API (Gemini 1.5 / Anthropic / OpenAI) for deep reasoning when local model is insufficient.
+   - **Cloud Burst:** Google Gemini 2.0 Flash API for deep reasoning when local model is insufficient. Handles complex queries, large contexts, and prepares for tool-use capabilities.
 
 3. **Memory & Tools**
 

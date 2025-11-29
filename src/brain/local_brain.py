@@ -19,7 +19,7 @@ class LocalBrain:
     
     Designed for Raspberry Pi 5 with memory constraints in mind.
     Uses Llama 3.2 3B as default - fast, capable, and fits within 6GB RAM budget.
-    If Llama 3.2 3B is insufficient, burst to cloud (Gemini 1.5) rather than larger local models.
+    If Llama 3.2 3B is insufficient, burst to cloud (Gemini 2.0 Flash) rather than larger local models.
     """
     
     def __init__(

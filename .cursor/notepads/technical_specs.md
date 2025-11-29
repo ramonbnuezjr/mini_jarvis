@@ -14,11 +14,13 @@
 
 - **Language:** Python 3.11+
 
-- **Local Inference:** Ollama (Service) or Llama.cpp (Library).
+- **Local Inference:** Ollama (Service) with Llama 3.2 3B model.
 
-- **Agent Framework:** LangGraph or Swarm (for MCP support).
+- **Cloud Inference:** Google Gemini 2.0 Flash API (for complex reasoning and tool-use).
 
-- **Database:** SQLite (Metadata) + ChromaDB (Vectors).
+- **Agent Framework:** LangGraph or Swarm (for MCP support) - Planned.
+
+- **Database:** SQLite (Metadata) + ChromaDB (Vectors) - Planned.
 
 ## Storage Configuration
 

@@ -138,10 +138,13 @@ setup_env() {
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
 
-# Cloud API Keys (for future Cloud Burst feature)
+# Cloud API Keys (for Cloud Burst feature)
+# Get your Gemini API key from: https://makersuite.google.com/app/apikey
+# GEMINI_API_KEY=your-key-here
+
+# Optional: Other cloud providers
 # ANTHROPIC_API_KEY=your-key-here
 # OPENAI_API_KEY=your-key-here
-# GEMINI_API_KEY=your-key-here
 EOF
             echo -e "${GREEN}✓ Created .env file${NC}"
         fi

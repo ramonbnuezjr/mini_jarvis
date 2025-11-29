@@ -65,19 +65,36 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file (or copy from .env.example if it exists)
+# Create .env file
 cat > .env << EOF
 OLLAMA_BASE_URL=http://localhost:11434
+# Get your Gemini API key from: https://makersuite.google.com/app/apikey
+# GEMINI_API_KEY=your-key-here
 EOF
 ```
 
-#### 4. Test Local Brain
+#### 3a. Get Gemini API Key (Recommended, for Cloud Burst)
+
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the key and add it to `.env`:
+   ```bash
+   GEMINI_API_KEY=your-actual-key-here
+   ```
+
+**Note**: Cloud Burst is optional but recommended. The system works with just the Local Brain, but Cloud Burst enables complex queries, better reasoning, and prepares for future tool-use capabilities.
+
+#### 4. Test the System
 
 ```bash
-# Run test script
+# Test Local Brain only
 python scripts/test_brain.py
 
-# Or chat with JARVIS interactively
+# Test Cloud Burst (requires GEMINI_API_KEY)
+python scripts/test_cloud_burst.py
+
+# Interactive chat (uses both Local and Cloud automatically)
 python scripts/chat.py
 ```
 
@@ -93,10 +110,14 @@ mini_jarvis/
 ├── src/
 │   └── brain/
 │       ├── __init__.py
-│       ├── local_brain.py    # Ollama client
-│       └── router.py         # Local vs Cloud routing
+│       ├── local_brain.py    # Ollama client (Llama 3.2 3B)
+│       ├── cloud_brain.py    # Gemini 2.0 Flash API client
+│       ├── router.py         # Local vs Cloud routing logic
+│       └── orchestrator.py  # Coordinates Local and Cloud brains
 ├── scripts/
-│   ├── test_brain.py         # Test script
+│   ├── test_brain.py         # Test Local Brain
+│   ├── test_cloud_burst.py   # Test Cloud Burst
+│   ├── diagnose_gemini.py    # Diagnose Gemini API issues
 │   ├── chat.py               # Interactive chat interface
 │   ├── setup.sh              # Automated setup script
 │   └── check_setup.py        # Prerequisites checker
@@ -110,10 +131,26 @@ mini_jarvis/
 - **Privacy**: Local-first; sensitive data stays on device
 - **Secrets**: Use `.env` file (never hardcode)
 
-## Next Steps
+## Features
 
-- [ ] Add Cloud Burst (Anthropic/OpenAI API)
-- [ ] Implement Senses (Voice Input, Camera)
-- [ ] Add Memory & Tools (RAG, MCP Server)
-- [ ] Implement Expression (TTS Output)
+- ✅ **Local Brain**: Ollama with Llama 3.2 3B for fast, private inference
+- ✅ **Cloud Burst**: Gemini 2.0 Flash API for complex reasoning (implemented)
+- ✅ **Smart Router**: Automatically routes queries to local or cloud based on complexity
+- ✅ **Orchestrator**: Seamlessly coordinates between Local Brain and Cloud Burst
+- ✅ **Interactive Chat**: Command-line interface for testing
+
+## Current Status
+
+### ✅ Implemented
+- Local Brain (Llama 3.2 3B via Ollama)
+- Cloud Burst (Gemini 2.0 Flash API)
+- Smart Router (automatic local/cloud routing)
+- Orchestrator (seamless brain coordination)
+- Interactive Chat Interface
+
+### 🚧 Next Steps
+- [ ] Build MCP Server with Weather API tool
+- [ ] Implement RAG pipeline for long-term memory
+- [ ] Add Voice Input (STT) and Output (TTS)
+- [ ] Add Camera integration for vision tasks
 

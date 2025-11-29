@@ -10,8 +10,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.brain.local_brain import LocalBrain
-from src.brain.router import Router, InferenceTarget
+from src.brain.orchestrator import Orchestrator
+from src.brain.router import InferenceTarget
 
 # Setup logging (less verbose for interactive use)
 logging.basicConfig(
@@ -25,54 +25,48 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 async def chat_loop():
     """Interactive chat loop with JARVIS."""
-    router = Router(prefer_local=True)
-    
     print("\n" + "="*60)
     print("Mini-JARVIS - Interactive Chat")
     print("="*60)
     print("Ask me anything! (Type 'quit' or 'exit' to end)\n")
     
-    async with LocalBrain() as brain:
-        # Check health first
-        if not await brain.check_health():
-            print("❌ Ollama is not running. Please start it with: ollama serve")
-            return
-        
-        while True:
-            try:
-                # Get user input
-                question = input("You: ").strip()
+    try:
+        async with Orchestrator() as orchestrator:
+            # Check local brain health
+            if not await orchestrator.local_brain.check_health():
+                print("❌ Ollama is not running. Please start it with: ollama serve")
+                return
                 
-                if not question:
-                    continue
+            # Check cloud brain availability
+            if orchestrator.cloud_brain:
+                cloud_ok = await orchestrator.cloud_brain.check_health()
+                if cloud_ok:
+                    print("✅ Cloud Burst (Gemini 2.0 Flash) available\n")
+                else:
+                    print("⚠️  Cloud Burst (Gemini 2.0 Flash) API key invalid or unavailable\n")
+            else:
+                print("⚠️  Cloud Burst not configured (GEMINI_API_KEY not set)\n")
+            
+            while True:
+                try:
+                    # Get user input
+                    question = input("You: ").strip()
                     
-                if question.lower() in ['quit', 'exit', 'q']:
-                    print("\n👋 Goodbye!")
-                    break
-                
-                # Route the query
-                target = router.route(question)
-                
-                if target == InferenceTarget.CLOUD:
-                    # Check if it's a tool-requiring query
-                    tool_keywords = ["weather", "temperature", "forecast", "calendar", "schedule", 
-                                   "time", "date", "today", "control", "turn on", "turn off"]
-                    is_tool_query = any(keyword in question.lower() for keyword in tool_keywords)
+                    if not question:
+                        continue
+                        
+                    if question.lower() in ['quit', 'exit', 'q']:
+                        print("\n👋 Goodbye!")
+                        break
                     
-                    if is_tool_query:
-                        print("🔧 [Router: This query requires tools/APIs (Weather, Calendar, etc.)]")
-                        print("   Tools/MCP Server not implemented yet. Cloud Burst would help,")
-                        print("   but tools are needed for real-time data. Falling back to local...\n")
-                    else:
-                        print("🧠 [Router: This query should use Cloud Burst, but it's not implemented yet]")
-                        print("   Falling back to local Llama 3.2 3B...\n")
-                
-                # Get response from local brain
-                print("🤔 Thinking...", end="", flush=True)
-                response = await brain.think(question)
-                print("\r" + " "*20 + "\r", end="")  # Clear "Thinking..." line
-                
-                print(f"JARVIS: {response}\n")
+                    # Get response from orchestrator
+                    print("🤔 Thinking...", end="", flush=True)
+                    response, target = await orchestrator.think(question)
+                    print("\r" + " "*20 + "\r", end="")  # Clear "Thinking..." line
+                    
+                    # Show which brain was used
+                    brain_indicator = "☁️" if target == InferenceTarget.CLOUD else "🏠"
+                    print(f"JARVIS {brain_indicator}: {response}\n")
                 
             except KeyboardInterrupt:
                 print("\n\n👋 Goodbye!")
