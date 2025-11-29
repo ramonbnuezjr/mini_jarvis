@@ -21,7 +21,8 @@ class Router:
     - Query complexity
     - Context size
     - Task type
-    - Available local resources
+    - Tool requirements (NOTE: Currently routes tool queries to cloud because
+      local Llama 3.2 3B doesn't support function calling yet)
     """
     
     # Keywords that suggest complex reasoning (route to cloud)
@@ -33,14 +34,23 @@ class Router:
         "evaluate", "assess", "interpret", "examine"
     ]
     
-    # Keywords that suggest tool/API requirements (route to cloud for better tool-use)
-    # Note: These queries need tools (Weather API, Calendar, etc.) which will be handled
-    # by MCP Server. Cloud LLMs often have better tool-use capabilities.
+    # Keywords that suggest tool/API requirements
+    # NOTE: Currently routes to cloud because local Llama 3.2 3B doesn't support
+    # function calling. Once local brain supports function calling, we can route
+    # simple tool queries (like "what's the weather?") to local first.
     TOOL_KEYWORDS = [
+        # Weather tools
         "weather", "temperature", "forecast", "rain", "snow", "sunny",
+        # Calendar/time tools
         "calendar", "schedule", "appointment", "meeting",
         "time", "date", "today", "tomorrow", "now",
-        "control", "turn on", "turn off", "set", "adjust"
+        # Home automation
+        "control", "turn on", "turn off", "set", "adjust",
+        # Search tools (Wikipedia, ArXiv, Web, News)
+        "search", "find", "lookup", "look up", "wikipedia", "arxiv", "arxiv.org",
+        "web search", "search the web", "search web", "duckduckgo",
+        "news", "headlines", "latest news", "tech news", "research papers",
+        "papers", "scientific papers", "recent papers"
     ]
     
     # Keywords that suggest simple/local tasks
@@ -56,7 +66,8 @@ class Router:
     def __init__(
         self,
         prefer_local: bool = True,
-        max_local_context: int = LARGE_CONTEXT_THRESHOLD
+        max_local_context: int = LARGE_CONTEXT_THRESHOLD,
+        route_tools_to_cloud: bool = True
     ):
         """
         Initialize router.
@@ -64,9 +75,12 @@ class Router:
         Args:
             prefer_local: Prefer local inference when possible (default True)
             max_local_context: Max context size for local inference (tokens)
+            route_tools_to_cloud: Route tool-requiring queries to cloud (default True)
+                                 Set to False once local brain supports function calling
         """
         self.prefer_local = prefer_local
         self.max_local_context = max_local_context
+        self.route_tools_to_cloud = route_tools_to_cloud
         
     def route(
         self,
@@ -109,28 +123,43 @@ class Router:
         # Heuristic-based routing
         query_lower = query.lower()
         
-        # Check for tool-requiring keywords first (these need APIs/tools)
-        tool_score = sum(1 for keyword in self.TOOL_KEYWORDS if keyword in query_lower)
-        if tool_score > 0:
-            logger.info(f"Router: Tool-requiring query (keywords={tool_score}) -> CLOUD (better tool-use)")
-            return InferenceTarget.CLOUD
-        
         # Check for complex keywords
         complex_score = sum(1 for keyword in self.COMPLEX_KEYWORDS if keyword in query_lower)
         simple_score = sum(1 for keyword in self.SIMPLE_KEYWORDS if keyword in query_lower)
         
-        # If prefer_local, only route to cloud if clearly complex
+        # Check for tool-requiring keywords
+        tool_score = sum(1 for keyword in self.TOOL_KEYWORDS if keyword in query_lower)
+        
+        # Routing logic (prioritized):
+        # 1. High complexity → cloud
+        # 2. Tool keywords → cloud (if route_tools_to_cloud is True)
+        #    NOTE: This is because local Llama 3.2 3B doesn't support function calling yet
+        # 3. Simple queries → local
+        
         if self.prefer_local:
+            # High complexity → cloud
             if complex_score >= 2 or (complex_score >= 1 and context_size > self.MEDIUM_CONTEXT_THRESHOLD):
                 logger.info(f"Router: Complex query (score={complex_score}) -> CLOUD")
                 return InferenceTarget.CLOUD
-            else:
-                logger.info(f"Router: Simple query (score={simple_score}) -> LOCAL")
-                return InferenceTarget.LOCAL
+            
+            # Tool keywords → cloud (only if route_tools_to_cloud is enabled)
+            # TODO: Once local brain supports function calling, we can route simple
+            # tool queries (like "what's the weather?") to local first
+            if tool_score > 0 and self.route_tools_to_cloud:
+                logger.info(
+                    f"Router: Tool-requiring query (keywords={tool_score}) -> CLOUD "
+                    f"(local brain doesn't support function calling yet)"
+                )
+                return InferenceTarget.CLOUD
+            
+            # Simple query → local
+            logger.info(f"Router: Simple query (score={simple_score}) -> LOCAL")
+            return InferenceTarget.LOCAL
         else:
             # If not preferring local, use cloud for anything non-trivial
             if complex_score > 0 or context_size > self.MEDIUM_CONTEXT_THRESHOLD:
                 return InferenceTarget.CLOUD
+            elif tool_score > 0:
+                return InferenceTarget.CLOUD
             else:
                 return InferenceTarget.LOCAL
-

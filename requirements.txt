@@ -3,9 +3,16 @@
 # Core
 python-dotenv>=1.0.0
 
-# HTTP client for Ollama
+# HTTP client for Ollama and APIs
 httpx>=0.25.0
 
 # Type hints (Python 3.11+ has most, but some extras are useful)
 typing-extensions>=4.8.0
+
+# Tools - Knowledge
+wikipedia>=1.4.0
+arxiv>=2.1.0
+
+# Tools - Search
+duckduckgo-search>=6.0.0
 

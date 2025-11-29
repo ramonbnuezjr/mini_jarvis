@@ -30,44 +30,49 @@ async def chat_loop():
     print("="*60)
     print("Ask me anything! (Type 'quit' or 'exit' to end)\n")
     
-    try:
-        async with Orchestrator() as orchestrator:
-            # Check local brain health
-            if not await orchestrator.local_brain.check_health():
-                print("❌ Ollama is not running. Please start it with: ollama serve")
-                return
-                
-            # Check cloud brain availability
-            if orchestrator.cloud_brain:
-                cloud_ok = await orchestrator.cloud_brain.check_health()
-                if cloud_ok:
-                    print("✅ Cloud Burst (Gemini 2.0 Flash) available\n")
-                else:
-                    print("⚠️  Cloud Burst (Gemini 2.0 Flash) API key invalid or unavailable\n")
-            else:
-                print("⚠️  Cloud Burst not configured (GEMINI_API_KEY not set)\n")
+    async with Orchestrator() as orchestrator:
+        # Check local brain health
+        if not await orchestrator.local_brain.check_health():
+            print("❌ Ollama is not running. Please start it with: ollama serve")
+            return
             
-            while True:
-                try:
-                    # Get user input
-                    question = input("You: ").strip()
-                    
-                    if not question:
-                        continue
-                        
-                    if question.lower() in ['quit', 'exit', 'q']:
-                        print("\n👋 Goodbye!")
-                        break
-                    
-                    # Get response from orchestrator
-                    print("🤔 Thinking...", end="", flush=True)
-                    response, target = await orchestrator.think(question)
-                    print("\r" + " "*20 + "\r", end="")  # Clear "Thinking..." line
-                    
-                    # Show which brain was used
-                    brain_indicator = "☁️" if target == InferenceTarget.CLOUD else "🏠"
-                    print(f"JARVIS {brain_indicator}: {response}\n")
+        # Check cloud brain availability
+        if orchestrator.cloud_brain:
+            cloud_ok = await orchestrator.cloud_brain.check_health()
+            if cloud_ok:
+                print("✅ Cloud Burst (Gemini 2.0 Flash) available\n")
+            else:
+                print("⚠️  Cloud Burst (Gemini 2.0 Flash) API key invalid or unavailable\n")
+        else:
+            print("⚠️  Cloud Burst not configured (GEMINI_API_KEY not set)\n")
+        
+        while True:
+            try:
+                # Get user input
+                question = input("You: ").strip()
                 
+                if not question:
+                    continue
+                    
+                if question.lower() in ['quit', 'exit', 'q']:
+                    print("\n👋 Goodbye!")
+                    break
+                
+                # Get response from orchestrator
+                print("🤔 Thinking...", end="", flush=True)
+                response, target, tool_calls = await orchestrator.think(question)
+                print("\r" + " "*20 + "\r", end="")  # Clear "Thinking..." line
+                
+                # Show which brain was used
+                brain_indicator = "☁️" if target == InferenceTarget.CLOUD else "🏠"
+                
+                # Show tool usage if any
+                if tool_calls:
+                    tools_used = ", ".join([tc["tool"] for tc in tool_calls])
+                    print(f"🔧 Tools used: {tools_used}")
+                
+                print(f"JARVIS {brain_indicator}: {response}\n")
+            
             except KeyboardInterrupt:
                 print("\n\n👋 Goodbye!")
                 break
