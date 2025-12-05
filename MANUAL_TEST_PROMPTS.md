@@ -82,6 +82,9 @@ Test prompts for web searches:
 - Calls `search_web` tool
 - Automatically uses news search for queries with "news", "latest", "recent", "breaking"
 - Returns web search results (default: 10 results, max: 20)
+- Automatically retries on rate limits (up to 3 attempts with exponential backoff)
+
+**Note:** If you encounter rate limit errors, wait a few minutes between searches or use the HackerNews tool for tech news.
 
 ---
 
@@ -124,7 +127,7 @@ Test prompts that might use multiple tools:
 - Weather tool requires `OPENWEATHER_API_KEY` in `.env` (optional, tool reports when missing)
 - Wikipedia disambiguation: Simple planet names may require specific queries (e.g., "Mars (planet)")
 - Wikipedia/ArXiv may have rate limits
-- DuckDuckGo search may show deprecation warning (handled automatically)
+- **DuckDuckGo rate limits:** If you see "rate limit exceeded" errors, wait a few minutes between searches or use the HackerNews tool (`get_tech_news`) for tech news instead. The tool automatically retries up to 3 times with delays.
 
 📝 **See [CHANGELOG.md](CHANGELOG.md) for detailed issue history and resolutions.**
 

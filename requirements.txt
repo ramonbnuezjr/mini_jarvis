@@ -14,5 +14,5 @@ wikipedia>=1.4.0
 arxiv>=2.1.0
 
 # Tools - Search
-duckduckgo-search>=6.0.0
+ddgs>=6.0.0  # DuckDuckGo search (renamed from duckduckgo-search)
 

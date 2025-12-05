@@ -22,11 +22,12 @@ All notable changes, issues, and resolutions for Mini-JARVIS.
 - **Status:** Partially resolved - works better with specific queries
 
 #### DuckDuckGo Web Search Improvements
-- **Issue:** Poor results for news queries
+- **Issue:** Poor results for news queries, rate limit errors
 - **Resolution:**
   - Added automatic news search detection
   - Increased default results from 5 to 10
   - Improved query handling for news-specific searches
+  - Added retry logic for rate limits with exponential backoff
 - **Status:** ✅ Resolved
 
 #### Tool Library Installation
@@ -34,9 +35,16 @@ All notable changes, issues, and resolutions for Mini-JARVIS.
 - **Resolution:** Verified and installed all required packages (`wikipedia`, `arxiv`, `duckduckgo-search`)
 - **Status:** ✅ Resolved
 
-#### DuckDuckGo Deprecation Warning
-- **Issue:** RuntimeWarning about `duckduckgo_search` being renamed to `ddgs`
-- **Resolution:** Added code to try new package name first, suppress warnings
+#### DuckDuckGo Deprecation Warning & Rate Limits
+- **Issue:** 
+  - RuntimeWarning about `duckduckgo_search` being renamed to `ddgs`
+  - Rate limit errors (202 Ratelimit) when making multiple searches
+- **Resolution:** 
+  - Updated `requirements.txt` to use new `ddgs` package (v9.9.3)
+  - Migrated from `duckduckgo-search` to `ddgs`
+  - Added retry logic with exponential backoff (3 attempts: 2s, 4s, 6s delays)
+  - Improved rate limit detection and error messages
+  - Added warning suppression at module level
 - **Status:** ✅ Resolved
 
 #### Weather API Key Configuration
@@ -81,4 +89,9 @@ All notable changes, issues, and resolutions for Mini-JARVIS.
 2. **Local LLM Function Calling:** Llama 3.2 3B doesn't support function calling, so all tool queries must use cloud (Gemini 2.0 Flash).
 
 3. **Weather API Key:** Optional but required for weather tool functionality.
+
+4. **DuckDuckGo Rate Limits:** DuckDuckGo enforces strict rate limits. If you encounter "rate limit exceeded" errors:
+   - Wait a few minutes between searches
+   - Use the HackerNews tool (`get_tech_news`) for tech news instead
+   - The tool automatically retries up to 3 times with exponential backoff (2s, 4s, 6s delays)
 

@@ -68,7 +68,7 @@ async def chat_loop():
                 
                 # Show tool usage if any
                 if tool_calls:
-                    tools_used = ", ".join([tc["tool"] for tc in tool_calls])
+                    tools_used = ", ".join([tc.get("tool") or tc.get("name", "unknown") for tc in tool_calls])
                     print(f"🔧 Tools used: {tools_used}")
                 
                 print(f"JARVIS {brain_indicator}: {response}\n")

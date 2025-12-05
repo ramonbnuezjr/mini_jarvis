@@ -2,10 +2,15 @@
 
 import logging
 import httpx
+import asyncio
+import warnings
 from typing import Dict, Any, List
 from src.tools.base_tool import Tool
 
 logger = logging.getLogger(__name__)
+
+# Suppress deprecation warnings for duckduckgo_search
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
 
 
 class DuckDuckGoTool(Tool):
@@ -71,24 +76,54 @@ class DuckDuckGoTool(Tool):
             try:
                 from ddgs import DDGS
             except ImportError:
-                import warnings
-                # Suppress the deprecation warning
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
-                    from duckduckgo_search import DDGS
+                from duckduckgo_search import DDGS
             
-            with DDGS() as ddgs:
-                # Use news search if requested or if query contains "news" or "latest"
-                if search_type == "news" or any(word in query.lower() for word in ["news", "latest", "recent", "breaking"]):
-                    results = list(ddgs.news(
-                        query,
-                        max_results=max_results
-                    ))
-                else:
-                    results = list(ddgs.text(
-                        query,
-                        max_results=max_results
-                    ))
+            # Add retry logic for rate limits
+            max_retries = 3
+            retry_delay = 2  # seconds
+            results = None
+            
+            for attempt in range(max_retries):
+                try:
+                    with DDGS() as ddgs:
+                        # Use news search if requested or if query contains "news" or "latest"
+                        if search_type == "news" or any(word in query.lower() for word in ["news", "latest", "recent", "breaking"]):
+                            results = list(ddgs.news(
+                                query,
+                                max_results=max_results
+                            ))
+                        else:
+                            results = list(ddgs.text(
+                                query,
+                                max_results=max_results
+                            ))
+                    # Success - break out of retry loop
+                    break
+                except Exception as e:
+                    error_str = str(e)
+                    # Check if it's a rate limit error
+                    if "202" in error_str or "Ratelimit" in error_str or "rate limit" in error_str.lower():
+                        if attempt < max_retries - 1:
+                            wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                            logger.warning(f"DuckDuckGo rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                            await asyncio.sleep(wait_time)
+                            continue
+                        else:
+                            # Last attempt failed
+                            return {
+                                "result": "DuckDuckGo rate limit exceeded. Please try again in a few minutes. You can also try using the HackerNews news tool instead.",
+                                "error": "RATE_LIMIT"
+                            }
+                    else:
+                        # Not a rate limit error, re-raise
+                        raise
+            
+            # If we exhausted retries without getting results
+            if results is None:
+                return {
+                    "result": "Failed to get search results after multiple attempts.",
+                    "error": "RETRY_EXHAUSTED"
+                }
             
             if not results:
                 return {

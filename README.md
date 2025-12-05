@@ -231,18 +231,24 @@ mini_jarvis/
 
 **Status:** Partially resolved. The tool works better with specific queries. Simple planet names may still hit disambiguation, but the tool description now guides Gemini to use specific names.
 
-#### 2. DuckDuckGo Web Search - Poor News Results
+#### 2. DuckDuckGo Web Search - Poor News Results & Rate Limits
 
-**Problem:** Web search wasn't returning good results for news queries like "latest news about Raspberry Pi 5".
+**Problem:** 
+- Web search wasn't returning good results for news queries like "latest news about Raspberry Pi 5"
+- Rate limit errors (202 Ratelimit) when making multiple searches
 
-**Root Cause:** General web search (`ddgs.text()`) isn't optimized for news queries. DuckDuckGo has a dedicated news search API.
+**Root Cause:** 
+- General web search (`ddgs.text()`) isn't optimized for news queries. DuckDuckGo has a dedicated news search API
+- DuckDuckGo enforces strict rate limits
 
 **Resolution:**
 - Added automatic news search detection (queries with "news", "latest", "recent", "breaking" use `ddgs.news()`)
 - Increased default results from 5 to 10
 - Improved query handling for news-specific searches
+- Added retry logic with exponential backoff for rate limits
+- Better error messages suggesting HackerNews as alternative
 
-**Status:** ✅ Resolved. News queries now automatically use DuckDuckGo's news search API.
+**Status:** ✅ Resolved. News queries work better, and rate limits are handled gracefully.
 
 #### 3. Tool Libraries "Missing" Errors
 
@@ -259,18 +265,25 @@ mini_jarvis/
 
 **Status:** ✅ Resolved. All required packages are now properly installed and tested.
 
-#### 4. DuckDuckGo Deprecation Warning
+#### 4. DuckDuckGo Deprecation Warning & Rate Limits
 
-**Problem:** RuntimeWarning: `duckduckgo_search` package has been renamed to `ddgs`.
+**Problem:** 
+- RuntimeWarning: `duckduckgo_search` package has been renamed to `ddgs`
+- Rate limit errors (202 Ratelimit) when making multiple searches quickly
 
-**Root Cause:** The `duckduckgo-search` package is being deprecated in favor of `ddgs`.
+**Root Cause:** 
+- The `duckduckgo-search` package was deprecated in favor of `ddgs`
+- DuckDuckGo enforces strict rate limits to prevent abuse
 
 **Resolution:**
-- Added code to try new package name (`ddgs`) first, fall back to old name
-- Suppressed deprecation warnings when using old package
-- Tool continues to work with either package name
+- Updated `requirements.txt` to use new `ddgs` package
+- Migrated from `duckduckgo-search` to `ddgs` (v9.9.3)
+- Added retry logic with exponential backoff (3 attempts: 2s, 4s, 6s delays)
+- Improved rate limit detection and error messages
+- Added warning suppression at module level
+- Tool now suggests using HackerNews tool as alternative when rate limited
 
-**Status:** ✅ Resolved. Tool handles both package names gracefully.
+**Status:** ✅ Resolved. Package updated and rate limit handling improved.
 
 #### 5. Weather API Key Configuration
 
@@ -331,6 +344,19 @@ mini_jarvis/
 - Added search-related keywords to ensure Wikipedia/ArXiv/Web queries route to cloud
 
 **Status:** ✅ Resolved. All tool-requiring queries are now correctly routed to cloud.
+
+## Known Limitations
+
+1. **Wikipedia Disambiguation:** Simple planet names (e.g., "Mars") may hit disambiguation. Use specific names like "Mars (planet)" for best results.
+
+2. **Local LLM Function Calling:** Llama 3.2 3B doesn't support function calling, so all tool queries must use cloud (Gemini 2.0 Flash).
+
+3. **Weather API Key:** Optional but required for weather tool functionality. Tool gracefully reports when API key is missing.
+
+4. **DuckDuckGo Rate Limits:** DuckDuckGo enforces strict rate limits. If you encounter "rate limit exceeded" errors:
+   - Wait a few minutes between searches
+   - Use the HackerNews tool (`get_tech_news`) for tech news instead
+   - The tool automatically retries up to 3 times with exponential backoff (2s, 4s, 6s delays)
 
 ## Testing
 
