@@ -10,3 +10,38 @@
 
 5. **Constraints**: Always check `.cursor/notepads/technical_specs.md` for hardware limits (Pi 5 16GB) before choosing heavy libraries.
 
+## TESTING MANDATE
+
+### 1. Before marking any phase COMPLETE:
+- Write automated tests for all new modules
+- Run all tests and fix failures
+- Perform UAT with 3-5 real-world test cases
+- Document results in Experiment Log
+
+Testing is NOT optional. If a phase has no tests, it is NOT complete.
+
+### 2. Regression Tests (MANDATORY):
+When fixing a bug, ALWAYS add a regression test:
+- Test must reproduce the original bug scenario
+- Include detailed docstring explaining:
+  - What broke
+  - Why it broke
+  - How the test prevents it from returning
+- Reference the Experiment # where the bug was discovered
+
+Example test name: `test_chunking_stride_prevents_dec2025_regression()`
+
+### 3. Test Location:
+- Unit tests: `tests/test_<module_name>.py`
+- Regression tests: Same file, but in a `TestRegressions` class
+- Integration tests: `tests/test_integration.py`
+
+### 4. Documentation Updates (MANDATORY):
+After completing any phase or major feature:
+- Update README.md with new features/capabilities
+- Update architecture docs (`.cursor/notepads/`) if design changed
+- Add Experiment Log entry documenting what was built and learned
+- Update CHANGELOG.md with issues/resolutions
+
+Documentation is NOT optional - it's part of marking a phase COMPLETE.
+

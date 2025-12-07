@@ -29,11 +29,13 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 - **Why first?** To give JARVIS real-time data (Weather, Time) immediately.
 - Enables practical utility before deep knowledge
 
-### 📋 Phase 4: RAG Pipeline (Long-term Memory)
-- **RAG Server:** Vector DB for long-term memory retrieval
-- Document ingestion and embedding
-- Context-aware conversations
-- **Why later?** Deep knowledge is less urgent than basic utility.
+### ✅ Phase 4: RAG Pipeline (Long-term Memory) - **IMPLEMENTED**
+- **RAG Server:** ChromaDB vector database for long-term memory retrieval
+- **Document Ingestion:** Support for text (.txt), markdown (.md), and PDF (.pdf) files
+- **Embedding System:** Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
+- **Context Retrieval:** Semantic search with top-k chunk retrieval
+- **Integration:** Automatic RAG context injection into queries via Orchestrator
+- **Storage:** Persistent vector database on NVMe at `~/.jarvis/memory`
 
 ### 📋 Phase 5: Voice/Vision Integration (STT/TTS/VLM)
 - **Ears:** USB Mic → VAD (Voice Activity Detection) → STT (Whisper)
@@ -59,11 +61,13 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
    - Multi-turn tool execution support
    - Automatic tool invocation based on user queries
 
-3. **Memory & Tools** 📋 **PHASE 4**
+3. **Memory & RAG Pipeline** ✅ **IMPLEMENTED**
 
-   - **RAG Server:** Vector DB for long-term memory retrieval.
-   - Document embedding and retrieval
-   - Context-aware conversations
+   - **RAG Server:** ChromaDB vector database for long-term memory retrieval
+   - **Document Ingestion:** Automatic chunking and embedding of documents (text, markdown, PDF)
+   - **Semantic Search:** Top-k retrieval with cosine similarity scoring
+   - **Context Injection:** Automatic RAG context enhancement for relevant queries
+   - **Local Embeddings:** CPU-friendly sentence-transformers model with API fallback
 
 4. **Senses & Expression** 📋 **PHASE 5**
 

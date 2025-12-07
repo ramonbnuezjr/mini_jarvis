@@ -12,6 +12,14 @@ from src.tools.tool_registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
+# Optional RAG import (Phase 4)
+try:
+    from src.memory.rag_server import RAGServer
+    RAG_AVAILABLE = True
+except ImportError:
+    RAG_AVAILABLE = False
+    RAGServer = None
+
 
 class Orchestrator:
     """
@@ -25,7 +33,9 @@ class Orchestrator:
         self,
         prefer_local: bool = True,
         cloud_model: str = "gemini-2.0-flash",
-        tool_registry: Optional[ToolRegistry] = None
+        tool_registry: Optional[ToolRegistry] = None,
+        rag_server: Optional["RAGServer"] = None,
+        use_rag: bool = True
     ):
         """
         Initialize orchestrator.
@@ -34,6 +44,8 @@ class Orchestrator:
             prefer_local: Prefer local inference when possible
             cloud_model: Cloud model to use (Gemini variant)
             tool_registry: ToolRegistry instance (creates default if None)
+            rag_server: RAGServer instance for long-term memory (optional)
+            use_rag: Whether to use RAG context when available (default: True)
         """
         self.router = Router(prefer_local=prefer_local)
         self.cloud_model = cloud_model
@@ -46,6 +58,12 @@ class Orchestrator:
             tool_registry = create_default_registry()
         self.tool_registry = tool_registry
         self.tool_executor = ToolExecutor(tool_registry)
+        
+        # Initialize RAG server (optional)
+        self.rag_server = rag_server
+        self.use_rag = use_rag and RAG_AVAILABLE and rag_server is not None
+        if self.use_rag:
+            logger.info("RAG Server enabled for long-term memory")
         
     async def __aenter__(self):
         """Async context manager entry."""
@@ -75,10 +93,11 @@ class Orchestrator:
         context_size: int = 0,
         task_hint: Optional[str] = None,
         force_target: Optional[InferenceTarget] = None,
-        max_tool_iterations: int = 3
+        max_tool_iterations: int = 3,
+        use_rag_context: Optional[bool] = None
     ) -> Tuple[str, InferenceTarget, List[Dict[str, Any]]]:
         """
-        Process a query using the appropriate brain, with tool support.
+        Process a query using the appropriate brain, with tool support and RAG context.
         
         Args:
             query: User query/prompt
@@ -86,6 +105,7 @@ class Orchestrator:
             task_hint: Optional hint about task type
             force_target: Force local or cloud (overrides router)
             max_tool_iterations: Maximum tool call iterations (to prevent loops)
+            use_rag_context: Override RAG usage for this query (None = use default)
             
         Returns:
             Tuple of (response, target_used, tool_calls_made)
@@ -93,8 +113,19 @@ class Orchestrator:
         Raises:
             RuntimeError: If neither brain is available
         """
+        # Retrieve RAG context if enabled
+        rag_context = None
+        if (use_rag_context if use_rag_context is not None else self.use_rag):
+            rag_context = await self._get_rag_context(query)
+        
+        # Enhance query with RAG context if available
+        enhanced_query = query
+        if rag_context:
+            enhanced_query = f"{rag_context}\n\nUser Query: {query}"
+            logger.info(f"RAG: Retrieved {len(rag_context.split('[Context')) - 1} context chunks")
+        
         # Route the query
-        target = self.router.route(query, context_size, task_hint, force_target)
+        target = self.router.route(enhanced_query, context_size, task_hint, force_target)
         
         tool_calls_made = []
         
@@ -106,7 +137,7 @@ class Orchestrator:
             else:
                 logger.info("Orchestrator: Using Cloud Burst (Gemini 2.0 Flash)")
                 response, tool_calls = await self._think_with_tools(
-                    query,
+                    enhanced_query,
                     max_tool_iterations
                 )
                 return response, InferenceTarget.CLOUD, tool_calls
@@ -118,8 +149,36 @@ class Orchestrator:
         logger.info("Orchestrator: Using Local Brain (Llama 3.2 3B)")
         # Note: Local brain doesn't support function calling yet
         # If query needs tools, router should have routed to cloud
-        response = await self.local_brain.think(query)
+        response = await self.local_brain.think(enhanced_query)
         return response, InferenceTarget.LOCAL, tool_calls_made
+    
+    async def _get_rag_context(self, query: str) -> Optional[str]:
+        """
+        Retrieve RAG context for a query.
+        
+        Args:
+            query: User query
+            
+        Returns:
+            Formatted context string or None if no context found
+        """
+        if not self.rag_server:
+            return None
+        
+        try:
+            chunks = await self.rag_server.retrieve_context(query, top_k=5, min_score=0.3)
+            
+            if not chunks:
+                return None
+            
+            # Format context using retriever
+            from src.memory.retriever import Retriever
+            retriever = Retriever(self.rag_server.collection)
+            return retriever.format_context(chunks)
+            
+        except Exception as e:
+            logger.warning(f"RAG retrieval failed: {e}")
+            return None
         
     async def _think_with_tools(
         self,

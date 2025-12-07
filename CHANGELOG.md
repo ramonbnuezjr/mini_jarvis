@@ -68,6 +68,45 @@ All notable changes, issues, and resolutions for Mini-JARVIS.
   - Correctly format user queries, model function calls, and function responses
 - **Status:** ✅ Resolved
 
+## [Phase 4] - RAG Pipeline Implementation
+
+### Added
+- RAG Server with ChromaDB vector database
+- Document ingestion system (text, markdown, PDF support)
+- Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
+- Semantic search with top-k retrieval
+- Automatic RAG context injection into queries
+- Comprehensive test suite (unit, integration, UAT tests)
+
+### Fixed
+
+#### Document Chunking Infinite Loop Bug
+- **Issue:** RAG document ingestion hanging indefinitely during chunking. Process would consume 100% CPU and never complete. Affected documents of specific sizes (e.g., 821 characters with chunk_size=150, overlap=30).
+- **Root Cause:** Critical bug in `_chunk_text()` method where `start` position was advancing by 1 character instead of `stride = chunk_size - overlap`. This caused an infinite loop, creating 16+ chunks instead of the expected 7 chunks.
+- **Resolution:**
+  - Fixed stride calculation: `start` now advances by `chunk_size - overlap` (120 chars) instead of 1
+  - Added comprehensive regression tests:
+    - `test_chunking_stride_bug_regression()` - Reproduces exact bug scenario (821 chars → 7 chunks, not 16)
+    - `test_chunking_stride_calculation()` - Validates stride math for various parameters
+    - `test_chunking_produces_expected_stride_pattern()` - Verifies chunk boundaries follow correct stride pattern
+  - Tests ensure correct chunk count and prevent infinite loops
+- **Status:** ✅ Resolved. Bug fixed and regression tests added.
+- **Reference:** Experiment #6 (continued 3) and #7 in project docs
+
+#### Embedding Dimension Mismatch
+- **Issue:** `chromadb.errors.InvalidArgumentError: Collection expecting embedding with dimension of 384, got 768`
+- **Root Cause:** Inconsistent embedding dimensions between local model (384-dim) and API fallback (768-dim)
+- **Resolution:** 
+  - Removed API fallback in `document_ingester.py` and `retriever.py`, forcing use of local 384-dimension model
+  - Explicitly set `embedding_dimension=384` when creating ChromaDB collection
+- **Status:** ✅ Resolved
+
+#### Virtual Environment Activation
+- **Issue:** `ModuleNotFoundError: No module named 'sentence_transformers'` when running RAG scripts
+- **Root Cause:** Virtual environment not activated before running scripts
+- **Resolution:** Added clear instructions and checks in scripts to ensure venv is activated
+- **Status:** ✅ Resolved
+
 ## [Phase 1] - Local Brain Implementation
 
 ### Fixed

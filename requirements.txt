@@ -16,3 +16,13 @@ arxiv>=2.1.0
 # Tools - Search
 ddgs>=6.0.0  # DuckDuckGo search (renamed from duckduckgo-search)
 
+# RAG Pipeline (Phase 4)
+chromadb>=0.4.0  # Vector database for long-term memory
+sentence-transformers>=2.2.0  # Local embeddings (all-MiniLM-L6-v2)
+PyPDF2>=3.0.0  # PDF support (optional, for PDF ingestion)
+
+# Testing
+pytest>=7.4.0  # Testing framework
+pytest-asyncio>=0.21.0  # Async test support
+pytest-cov>=4.1.0  # Coverage reporting
+

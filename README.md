@@ -15,8 +15,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed history of issues, fixes, and impr
 **Priority Order:**
 1. ✅ **Phase 1 & 2: Brain** (Local + Cloud) - **COMPLETE**
 2. ✅ **Phase 3: Agentic Layer** (Tools & MCP Server) - **COMPLETE**
-3. 📋 **Phase 4: RAG Pipeline** (Long-term Memory) - **NEXT**
-4. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM)
+3. ✅ **Phase 4: RAG Pipeline** (Long-term Memory) - **COMPLETE**
+4. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM) - **NEXT**
 
 **Rationale:** Tools first to enable real-time data access (Weather, Time), then memory for context, then voice/vision for natural interaction.
 
@@ -125,6 +125,31 @@ python scripts/test_cloud_burst.py
 python scripts/chat.py
 ```
 
+#### 5. Setup RAG Pipeline (Phase 4 - Optional)
+
+The RAG pipeline provides long-term memory by ingesting documents into a vector database.
+
+```bash
+# Install RAG dependencies
+pip install chromadb sentence-transformers PyPDF2
+
+# Ingest documents into memory
+python scripts/ingest_documents.py document1.txt document2.md notes.pdf
+
+# Test RAG retrieval
+python scripts/test_rag.py
+
+# Chat with RAG enabled (automatic if documents are ingested)
+python scripts/chat.py
+```
+
+**RAG Features:**
+- **Document Support**: Text (.txt), Markdown (.md), PDF (.pdf)
+- **Local Embeddings**: Uses `sentence-transformers/all-MiniLM-L6-v2` (~80MB, CPU-friendly)
+- **API Fallback**: Falls back to Gemini embedding API if local model unavailable
+- **Automatic Context**: RAG context is automatically injected into queries when relevant
+- **Storage**: Vector database stored at `~/.jarvis/memory` on NVMe
+
 ## Project Structure
 
 ```
@@ -142,15 +167,20 @@ mini_jarvis/
 │   │   ├── router.py         # Local vs Cloud routing logic
 │   │   ├── orchestrator.py  # Coordinates Local and Cloud brains
 │   │   └── tool_executor.py # Executes tools from LLM function calls
-│   └── tools/
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   ├── base_tool.py      # Abstract base class for tools
+│   │   ├── tool_registry.py  # Tool registry (MCP-like server)
+│   │   ├── default_registry.py # Creates registry with all tools
+│   │   ├── weather_tool.py    # Weather API tool
+│   │   ├── time_tool.py       # Time/Date tool
+│   │   ├── knowledge_tool.py # Wikipedia & ArXiv tools
+│   │   └── search_tool.py    # DuckDuckGo & HackerNews tools
+│   └── memory/               # RAG Pipeline (Phase 4)
 │       ├── __init__.py
-│       ├── base_tool.py      # Abstract base class for tools
-│       ├── tool_registry.py  # Tool registry (MCP-like server)
-│       ├── default_registry.py # Creates registry with all tools
-│       ├── weather_tool.py    # Weather API tool
-│       ├── time_tool.py       # Time/Date tool
-│       ├── knowledge_tool.py # Wikipedia & ArXiv tools
-│       └── search_tool.py    # DuckDuckGo & HackerNews tools
+│       ├── rag_server.py     # Main RAG server interface
+│       ├── document_ingester.py  # Document loading and chunking
+│       └── retriever.py      # Semantic search and retrieval
 ├── scripts/
 │   ├── test_brain.py         # Test Local Brain
 │   ├── test_cloud_burst.py   # Test Cloud Burst
@@ -158,6 +188,8 @@ mini_jarvis/
 │   ├── test_tools.py         # Test tool registry
 │   ├── test_tool_prompts.py  # Test prompts that trigger tools
 │   ├── test_tools_live.py    # Test tools through orchestrator
+│   ├── ingest_documents.py   # Ingest documents into RAG memory
+│   ├── test_rag.py           # Test RAG retrieval
 │   ├── chat.py               # Interactive chat interface
 │   ├── setup.sh              # Automated setup script
 │   └── check_setup.py        # Prerequisites checker
@@ -179,11 +211,12 @@ mini_jarvis/
 - ✅ **Orchestrator**: Seamlessly coordinates between Local Brain and Cloud Burst
 - ✅ **Tool System**: 6 tools integrated (Weather, Time, Wikipedia, ArXiv, DuckDuckGo, HackerNews)
 - ✅ **Function Calling**: Gemini can invoke tools automatically based on user queries
+- ✅ **RAG Pipeline**: Long-term memory with ChromaDB, document ingestion, and semantic search
 - ✅ **Interactive Chat**: Command-line interface for testing
 
 ## Current Status
 
-### ✅ Implemented (Phase 1, 2 & 3)
+### ✅ Implemented (Phase 1, 2, 3 & 4)
 - **Phase 1: Local Brain** - Ollama with Llama 3.2 3B for fast, private inference
 - **Phase 2: Cloud Burst** - Gemini 2.0 Flash API for complex reasoning
 - **Phase 3: Agentic Layer** - Tool system with 6 integrated tools:
@@ -193,19 +226,26 @@ mini_jarvis/
   - ✅ ArXiv Research Paper Search Tool
   - ✅ DuckDuckGo Web Search Tool
   - ✅ HackerNews Tech News Tool
+- **Phase 4: RAG Pipeline** - Long-term memory system:
+  - ✅ ChromaDB vector database (persistent storage on NVMe)
+  - ✅ Document ingestion (text, markdown, PDF support)
+  - ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
+  - ✅ Semantic search with top-k retrieval
+  - ✅ Automatic context injection into queries
 - Smart Router (automatic local/cloud routing, routes tool queries to cloud)
-- Orchestrator (seamless brain coordination with multi-turn tool execution)
+- Orchestrator (seamless brain coordination with multi-turn tool execution and RAG context)
 - Tool Registry & Executor (MCP-like server for tool management)
-- Interactive Chat Interface
+- Interactive Chat Interface with RAG support
 
 ### 🚧 Development Phases
 
-#### Phase 4: RAG Pipeline (Long-term Memory) - **NEXT**
-- [ ] Implement vector database (ChromaDB)
-- [ ] Document ingestion and embedding
-- [ ] Context retrieval system
-- [ ] Long-term memory integration
-- *Why later?* Deep knowledge is less urgent than basic utility.
+#### ✅ Phase 4: RAG Pipeline (Long-term Memory) - **COMPLETE**
+- ✅ Implement vector database (ChromaDB)
+- ✅ Document ingestion and embedding (text, markdown, PDF)
+- ✅ Context retrieval system (semantic search with top-k chunks)
+- ✅ Long-term memory integration with Orchestrator
+- ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
+- ✅ Automatic RAG context injection for relevant queries
 
 #### Phase 5: Voice/Vision Integration (STT/TTS/VLM)
 - [ ] Voice Input (STT with Whisper)
@@ -285,7 +325,30 @@ mini_jarvis/
 
 **Status:** ✅ Resolved. Package updated and rate limit handling improved.
 
-#### 5. Weather API Key Configuration
+#### 5. RAG Pipeline - Document Chunking Infinite Loop Bug
+
+**Problem:** 
+- RAG document ingestion was hanging indefinitely during chunking
+- Process would consume 100% CPU and never complete
+- Affected documents of specific sizes (e.g., 821 characters with chunk_size=150, overlap=30)
+
+**Root Cause:** 
+- Critical bug in `_chunk_text()` method in `document_ingester.py`
+- The `start` position was advancing by 1 character instead of `stride = chunk_size - overlap`
+- This caused an infinite loop, creating 16+ chunks instead of the expected 7 chunks
+- The bug was triggered when the chunking logic didn't properly advance the start position
+
+**Resolution:**
+- Fixed stride calculation: `start` now advances by `chunk_size - overlap` (120 chars) instead of 1
+- Added regression tests to prevent the bug from reappearing:
+  - `test_chunking_stride_bug_regression()` - Reproduces exact bug scenario
+  - `test_chunking_stride_calculation()` - Validates stride math for various parameters
+  - `test_chunking_produces_expected_stride_pattern()` - Verifies chunk boundaries
+- Tests ensure correct chunk count (7 chunks, not 16) and prevent infinite loops
+
+**Status:** ✅ Resolved. Bug fixed and regression tests added.
+
+#### 6. Weather API Key Configuration
 
 **Problem:** Weather tool was reporting "API key missing" errors.
 
@@ -300,7 +363,7 @@ mini_jarvis/
 
 ### API & Configuration Issues
 
-#### 6. Gemini API Model Name Change
+#### 7. Gemini API Model Name Change
 
 **Problem:** `404 Not Found` errors when calling Gemini API with `gemini-1.5-flash`.
 
@@ -313,7 +376,7 @@ mini_jarvis/
 
 **Status:** ✅ Resolved. All code now uses `gemini-2.0-flash`.
 
-#### 7. Conversation History Format for Function Calling
+#### 8. Conversation History Format for Function Calling
 
 **Problem:** `400 Bad Request` errors when Gemini tried to process tool results in multi-turn conversations.
 
@@ -331,7 +394,7 @@ mini_jarvis/
 
 ### Development Issues
 
-#### 8. Router Not Routing Tool Queries to Cloud
+#### 9. Router Not Routing Tool Queries to Cloud
 
 **Problem:** Simple tool-requiring queries (e.g., "What's the weather?") were being routed to local brain, which doesn't support function calling.
 
@@ -359,6 +422,33 @@ mini_jarvis/
    - The tool automatically retries up to 3 times with exponential backoff (2s, 4s, 6s delays)
 
 ## Testing
+
+### Automated Tests
+
+The project includes comprehensive automated tests:
+
+- **Unit Tests:** `tests/test_<module_name>.py` - Test individual components
+- **Integration Tests:** `tests/test_integration.py` - Test component interactions
+- **Regression Tests:** Located in `TestRegressions` classes within test files
+- **UAT Tests:** `tests/test_uat_rag.py` - Real-world scenario testing
+
+Run all tests:
+```bash
+source venv/bin/activate
+python -m pytest tests/ -v
+```
+
+### Regression Test Standards
+
+When fixing bugs, regression tests are **MANDATORY**:
+- Test must reproduce the original bug scenario
+- Include detailed docstring explaining what broke, why, and how the test prevents it
+- Reference the Experiment # where the bug was discovered
+- Located in `TestRegressions` classes within test files
+
+Example: `test_chunking_stride_bug_regression()` prevents the RAG chunking infinite loop bug from reappearing.
+
+### Manual Testing
 
 See `MANUAL_TEST_PROMPTS.md` for example prompts to test each tool.
 

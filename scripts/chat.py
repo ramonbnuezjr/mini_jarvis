@@ -13,6 +13,14 @@ sys.path.insert(0, str(project_root))
 from src.brain.orchestrator import Orchestrator
 from src.brain.router import InferenceTarget
 
+# Optional RAG import
+try:
+    from src.memory.rag_server import RAGServer
+    RAG_AVAILABLE = True
+except ImportError:
+    RAG_AVAILABLE = False
+    RAGServer = None
+
 # Setup logging (less verbose for interactive use)
 logging.basicConfig(
     level=logging.WARNING,  # Only show warnings/errors
@@ -30,7 +38,21 @@ async def chat_loop():
     print("="*60)
     print("Ask me anything! (Type 'quit' or 'exit' to end)\n")
     
-    async with Orchestrator() as orchestrator:
+    # Initialize RAG server if available
+    rag_server = None
+    if RAG_AVAILABLE:
+        try:
+            rag_server = RAGServer()
+            stats = rag_server.get_stats()
+            if stats["total_chunks"] > 0:
+                print(f"📚 RAG Memory: {stats['total_chunks']} chunks loaded\n")
+            else:
+                print("📚 RAG Memory: Available (no documents ingested yet)\n")
+        except Exception as e:
+            print(f"⚠️  RAG Memory: Not available ({e})\n")
+            rag_server = None
+    
+    async with Orchestrator(rag_server=rag_server) as orchestrator:
         # Check local brain health
         if not await orchestrator.local_brain.check_health():
             print("❌ Ollama is not running. Please start it with: ollama serve")
