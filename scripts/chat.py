@@ -38,16 +38,26 @@ async def chat_loop():
     print("="*60)
     print("Ask me anything! (Type 'quit' or 'exit' to end)\n")
     
-    # Initialize RAG server if available
+    # Initialize RAG server if available (with tiering enabled)
     rag_server = None
     if RAG_AVAILABLE:
         try:
-            rag_server = RAGServer()
+            # Enable tiered memory (Phase 4.5)
+            rag_server = RAGServer(enable_tiering=True)
             stats = rag_server.get_stats()
-            if stats["total_chunks"] > 0:
-                print(f"📚 RAG Memory: {stats['total_chunks']} chunks loaded\n")
+            if stats.get("tiering_enabled"):
+                tier_counts = stats.get("tier_counts", {})
+                total = stats["total_chunks"]
+                if total > 0:
+                    tier_info = ", ".join([f"{k}: {v}" for k, v in tier_counts.items() if v > 0])
+                    print(f"📚 RAG Memory (Tiered): {total} chunks ({tier_info})\n")
+                else:
+                    print("📚 RAG Memory (Tiered): Available (no documents ingested yet)\n")
             else:
-                print("📚 RAG Memory: Available (no documents ingested yet)\n")
+                if stats["total_chunks"] > 0:
+                    print(f"📚 RAG Memory: {stats['total_chunks']} chunks loaded\n")
+                else:
+                    print("📚 RAG Memory: Available (no documents ingested yet)\n")
         except Exception as e:
             print(f"⚠️  RAG Memory: Not available ({e})\n")
             rag_server = None

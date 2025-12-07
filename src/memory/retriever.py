@@ -10,17 +10,29 @@ logger = logging.getLogger(__name__)
 class Retriever:
     """
     Retrieves relevant context from vector database using semantic search.
+    Supports tiered memory with weighted retrieval.
     """
     
-    def __init__(self, collection):
+    def __init__(self, collection=None, collections=None, metadata_tracker=None):
         """
         Initialize retriever.
         
         Args:
-            collection: ChromaDB collection instance
+            collection: Single ChromaDB collection (backward compatible)
+            collections: Dict of tiered collections {'core': coll, 'reference': coll, 'ephemeral': coll}
+            metadata_tracker: MetadataTracker instance for tier lookup
         """
         self.collection = collection
+        self.collections = collections
+        self.metadata_tracker = metadata_tracker
         self._embedding_model = None
+        
+        # Tier weights for weighted retrieval
+        self.tier_weights = {
+            'core': 1.5,      # Boost core documents
+            'reference': 1.0, # Normal weight
+            'ephemeral': 0.7  # Deprioritize ephemeral
+        }
     
     async def retrieve(
         self,
@@ -30,6 +42,7 @@ class Retriever:
     ) -> List[Dict[str, Any]]:
         """
         Retrieve relevant chunks for a query.
+        Supports tiered memory with weighted retrieval.
         
         Args:
             query: User query
@@ -37,34 +50,84 @@ class Retriever:
             min_score: Minimum similarity score (0.0 to 1.0, cosine similarity)
             
         Returns:
-            List of relevant chunks with metadata and scores
+            List of relevant chunks with metadata and scores (weighted)
         """
         # Generate query embedding
         query_embedding = await self._embed_query(query)
         
-        # Search collection
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k
-        )
-        
-        # Format results
-        chunks = []
-        
-        if results["ids"] and len(results["ids"][0]) > 0:
-            for i in range(len(results["ids"][0])):
-                # ChromaDB returns distances (lower is better for cosine)
-                # Convert to similarity score (1 - distance)
-                distance = results["distances"][0][i] if results.get("distances") else 0.0
-                similarity = 1.0 - distance  # Cosine similarity
+        # Retrieve from tiered collections or single collection
+        if self.collections:
+            # Tiered retrieval: query all tiers and merge with weights
+            all_chunks = []
+            
+            for tier, collection in self.collections.items():
+                weight = self.tier_weights.get(tier, 1.0)
                 
-                if similarity >= min_score:
-                    chunks.append({
-                        "text": results["documents"][0][i],
-                        "metadata": results["metadatas"][0][i] if results.get("metadatas") else {},
-                        "score": similarity,
-                        "distance": distance
-                    })
+                # Query more results per tier to account for weighting
+                tier_top_k = max(top_k, 10)  # Get more candidates per tier
+                
+                try:
+                    results = collection.query(
+                        query_embeddings=[query_embedding],
+                        n_results=tier_top_k
+                    )
+                    
+                    if results["ids"] and len(results["ids"][0]) > 0:
+                        for i in range(len(results["ids"][0])):
+                            distance = results["distances"][0][i] if results.get("distances") else 0.0
+                            similarity = 1.0 - distance  # Cosine similarity
+                            
+                            # Apply tier weight to similarity score
+                            weighted_score = similarity * weight
+                            
+                            if weighted_score >= min_score:
+                                chunk_id = results["ids"][0][i]
+                                metadata = results["metadatas"][0][i] if results.get("metadatas") else {}
+                                
+                                # Track access
+                                if self.metadata_tracker:
+                                    self.metadata_tracker.track_access(chunk_id)
+                                
+                                all_chunks.append({
+                                    "text": results["documents"][0][i],
+                                    "metadata": {**metadata, "tier": tier},
+                                    "score": weighted_score,
+                                    "base_score": similarity,  # Original score before weighting
+                                    "tier": tier,
+                                    "weight": weight,
+                                    "distance": distance,
+                                    "chunk_id": chunk_id
+                                })
+                except Exception as e:
+                    logger.warning(f"Error querying {tier} tier: {e}")
+                    continue
+            
+            # Sort by weighted score and take top_k
+            all_chunks.sort(key=lambda x: x["score"], reverse=True)
+            chunks = all_chunks[:top_k]
+            
+        else:
+            # Single collection mode (backward compatible)
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k
+            )
+            
+            chunks = []
+            if results["ids"] and len(results["ids"][0]) > 0:
+                for i in range(len(results["ids"][0])):
+                    distance = results["distances"][0][i] if results.get("distances") else 0.0
+                    similarity = 1.0 - distance  # Cosine similarity
+                    
+                    if similarity >= min_score:
+                        chunk_id = results["ids"][0][i]
+                        chunks.append({
+                            "text": results["documents"][0][i],
+                            "metadata": results["metadatas"][0][i] if results.get("metadatas") else {},
+                            "score": similarity,
+                            "distance": distance,
+                            "chunk_id": chunk_id
+                        })
         
         logger.info(f"Retrieved {len(chunks)} chunks for query (min_score={min_score})")
         

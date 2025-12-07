@@ -171,9 +171,12 @@ class Orchestrator:
             if not chunks:
                 return None
             
-            # Format context using retriever
+            # Format context using retriever (works with both tiered and single collection)
             from src.memory.retriever import Retriever
-            retriever = Retriever(self.rag_server.collection)
+            if self.rag_server.enable_tiering:
+                retriever = self.rag_server.retriever  # Already initialized with tiering
+            else:
+                retriever = Retriever(self.rag_server.collection)
             return retriever.format_context(chunks)
             
         except Exception as e:

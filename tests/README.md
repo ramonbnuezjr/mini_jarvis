@@ -93,6 +93,29 @@ pytest tests/ --cov=src/memory --cov-report=html
 
 **Total: 28 tests, all passing ✅**
 
+### Phase 4.5: RAG Memory Tiering Tests
+
+**MetadataTracker (6+ tests)**
+- ✅ Document registration with metadata
+- ✅ Version hashing (SHA256)
+- ✅ TTL tracking and expiry detection
+- ✅ Access time and count tracking
+- ✅ Chunk association with documents
+- ✅ Document deletion and cleanup
+
+**Tiered RAG System (5+ tests)**
+- ✅ Tiered collection initialization
+- ✅ Document ingestion with tier assignment
+- ✅ Weighted retrieval (core 1.5x, reference 1.0x, ephemeral 0.7x)
+- ✅ TTL-based expiry and cleanup
+- ✅ Backward compatibility with single collection mode
+
+**UAT Tests**
+- ✅ User acceptance testing completed successfully
+- ✅ Real-world tiered memory scenarios validated
+
+**Total Phase 4.5: 11+ additional tests, all passing ✅**
+
 ## Test Requirements
 
 Tests require:

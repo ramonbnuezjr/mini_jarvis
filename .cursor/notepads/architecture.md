@@ -37,6 +37,17 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 - **Integration:** Automatic RAG context injection into queries via Orchestrator
 - **Storage:** Persistent vector database on NVMe at `~/.jarvis/memory`
 
+### ✅ Phase 4.5: RAG Memory Tiering (Refinement) - **IMPLEMENTED & UAT PASSED**
+- **Tiered Storage:** Three-tier memory architecture (core/reference/ephemeral)
+  - **Core:** Important, permanent documents (1.5x retrieval boost)
+  - **Reference:** Standard documents (normal weight)
+  - **Ephemeral:** Temporary documents (0.7x weight, TTL-based expiry)
+- **Metadata Tracking:** SQLite database for version hashing, TTL, and access patterns
+- **Weighted Retrieval:** Tier-based score boosting in semantic search
+- **Automatic Cleanup:** TTL-based expiry for ephemeral documents
+- **Backward Compatible:** Single collection mode still supported
+- **Testing:** Comprehensive automated tests and UAT completed successfully
+
 ### 📋 Phase 5: Voice/Vision Integration (STT/TTS/VLM)
 - **Ears:** USB Mic → VAD (Voice Activity Detection) → STT (Whisper)
 - **Eyes:** Pi Camera 3 → Frame Capture → Local Object Detect (YOLO) or Cloud Vision
@@ -64,10 +75,13 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 3. **Memory & RAG Pipeline** ✅ **IMPLEMENTED**
 
    - **RAG Server:** ChromaDB vector database for long-term memory retrieval
+   - **Tiered Memory:** Three-tier architecture (core/reference/ephemeral) with weighted retrieval
+   - **Metadata Tracker:** SQLite-based tracking for version hashing, TTL, and access patterns
    - **Document Ingestion:** Automatic chunking and embedding of documents (text, markdown, PDF)
-   - **Semantic Search:** Top-k retrieval with cosine similarity scoring
+   - **Semantic Search:** Top-k retrieval with tier-based weighted scoring
    - **Context Injection:** Automatic RAG context enhancement for relevant queries
    - **Local Embeddings:** CPU-friendly sentence-transformers model with API fallback
+   - **Automatic Cleanup:** TTL-based expiry for ephemeral documents
 
 4. **Senses & Expression** 📋 **PHASE 5**
 

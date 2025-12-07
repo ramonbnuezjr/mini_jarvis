@@ -1,0 +1,1 @@
+This is a standard reference document about Python programming. It contains general information that should be retrieved with normal priority.

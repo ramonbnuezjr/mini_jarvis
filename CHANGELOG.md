@@ -2,6 +2,34 @@
 
 All notable changes, issues, and resolutions for Mini-JARVIS.
 
+## [Phase 4.5] - RAG Memory Tiering (Refinement)
+
+### Added
+- **Tiered Memory Architecture**: Three-tier system (core/reference/ephemeral) for intelligent document prioritization
+- **Metadata Tracker**: SQLite-based tracking for version hashing, TTL, and access patterns
+- **Weighted Retrieval**: Tier-based score boosting (1.5x core, 1.0x reference, 0.7x ephemeral)
+- **Automatic Cleanup**: TTL-based expiry for ephemeral documents
+- **Enhanced Scripts**:
+  - `scripts/cleanup_expired_memory.py`: Cleanup script for expired documents
+  - `scripts/test_tiered_memory.py`: Test script for tiered memory system
+- **Updated Components**:
+  - `RAGServer`: Added tiered collection support with backward compatibility
+  - `Retriever`: Added weighted retrieval from tiered collections
+  - `ingest_documents.py`: Added `--tier` and `--ttl` options
+  - `chat.py`: Enabled tiering by default
+
+### Features
+- **Core Tier**: Important, permanent documents with 1.5x retrieval boost
+- **Reference Tier**: Standard documents with normal retrieval weight
+- **Ephemeral Tier**: Temporary documents with 0.7x weight and TTL-based expiry
+- **Backward Compatible**: Single collection mode still supported for existing deployments
+
+### Testing
+- Comprehensive unit tests for `MetadataTracker`
+- Integration tests for tiered RAG system
+- Tests for weighted retrieval, TTL expiry, and tier management
+- **UAT Status**: ✅ Passed - User acceptance testing completed successfully
+
 ## [Phase 3] - Tool System Implementation
 
 ### Added

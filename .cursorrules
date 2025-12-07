@@ -36,7 +36,14 @@ Example test name: `test_chunking_stride_prevents_dec2025_regression()`
 - Regression tests: Same file, but in a `TestRegressions` class
 - Integration tests: `tests/test_integration.py`
 
-### 4. Documentation Updates (MANDATORY):
+### 4. Test Logging (MANDATORY):
+- All tests must use pytest's logging configuration from `pytest.ini`
+- Logging is enabled by default with INFO level
+- Test output includes timestamps, log levels, and module names
+- Logs are displayed in console during test execution
+- Optional: Enable log files by uncommenting `log_file` settings in `pytest.ini`
+
+### 5. Documentation Updates (MANDATORY):
 After completing any phase or major feature:
 - Update README.md with new features/capabilities
 - Update architecture docs (`.cursor/notepads/`) if design changed

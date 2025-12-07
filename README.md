@@ -16,7 +16,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed history of issues, fixes, and impr
 1. ✅ **Phase 1 & 2: Brain** (Local + Cloud) - **COMPLETE**
 2. ✅ **Phase 3: Agentic Layer** (Tools & MCP Server) - **COMPLETE**
 3. ✅ **Phase 4: RAG Pipeline** (Long-term Memory) - **COMPLETE**
-4. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM) - **NEXT**
+4. ✅ **Phase 4.5: RAG Memory Tiering** (Refinement) - **COMPLETE**
+5. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM) - **NEXT**
 
 **Rationale:** Tools first to enable real-time data access (Weather, Time), then memory for context, then voice/vision for natural interaction.
 
@@ -133,11 +134,21 @@ The RAG pipeline provides long-term memory by ingesting documents into a vector 
 # Install RAG dependencies
 pip install chromadb sentence-transformers PyPDF2
 
-# Ingest documents into memory
+# Ingest documents into memory (default: reference tier)
 python scripts/ingest_documents.py document1.txt document2.md notes.pdf
+
+# Ingest into specific tier
+python scripts/ingest_documents.py important_doc.txt --tier core
+python scripts/ingest_documents.py temp_notes.txt --tier ephemeral --ttl 3600
 
 # Test RAG retrieval
 python scripts/test_rag.py
+
+# Test tiered memory system
+python scripts/test_tiered_memory.py
+
+# Clean up expired ephemeral documents
+python scripts/cleanup_expired_memory.py
 
 # Chat with RAG enabled (automatic if documents are ingested)
 python scripts/chat.py
@@ -149,6 +160,12 @@ python scripts/chat.py
 - **API Fallback**: Falls back to Gemini embedding API if local model unavailable
 - **Automatic Context**: RAG context is automatically injected into queries when relevant
 - **Storage**: Vector database stored at `~/.jarvis/memory` on NVMe
+- **Tiered Memory** (Phase 4.5):
+  - **Core Tier**: Important documents (1.5x retrieval boost)
+  - **Reference Tier**: Standard documents (normal weight)
+  - **Ephemeral Tier**: Temporary documents (0.7x weight, TTL-based expiry)
+  - **Metadata Tracking**: SQLite database for version hashing, TTL, and access patterns
+  - **Automatic Cleanup**: Expired ephemeral documents are automatically removed
 
 ## Project Structure
 
@@ -212,11 +229,12 @@ mini_jarvis/
 - ✅ **Tool System**: 6 tools integrated (Weather, Time, Wikipedia, ArXiv, DuckDuckGo, HackerNews)
 - ✅ **Function Calling**: Gemini can invoke tools automatically based on user queries
 - ✅ **RAG Pipeline**: Long-term memory with ChromaDB, document ingestion, and semantic search
+- ✅ **Tiered Memory**: Three-tier architecture (core/reference/ephemeral) with weighted retrieval
 - ✅ **Interactive Chat**: Command-line interface for testing
 
 ## Current Status
 
-### ✅ Implemented (Phase 1, 2, 3 & 4)
+### ✅ Implemented (Phase 1, 2, 3, 4 & 4.5)
 - **Phase 1: Local Brain** - Ollama with Llama 3.2 3B for fast, private inference
 - **Phase 2: Cloud Burst** - Gemini 2.0 Flash API for complex reasoning
 - **Phase 3: Agentic Layer** - Tool system with 6 integrated tools:
@@ -232,6 +250,12 @@ mini_jarvis/
   - ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
   - ✅ Semantic search with top-k retrieval
   - ✅ Automatic context injection into queries
+- **Phase 4.5: RAG Memory Tiering** - Intelligent memory management:
+  - ✅ Three-tier architecture (core/reference/ephemeral)
+  - ✅ Weighted retrieval (1.5x core, 1.0x reference, 0.7x ephemeral)
+  - ✅ Metadata tracking with SQLite (version hashing, TTL, access patterns)
+  - ✅ Automatic cleanup for expired ephemeral documents
+  - ✅ Backward compatible with single collection mode
 - Smart Router (automatic local/cloud routing, routes tool queries to cloud)
 - Orchestrator (seamless brain coordination with multi-turn tool execution and RAG context)
 - Tool Registry & Executor (MCP-like server for tool management)
@@ -246,6 +270,14 @@ mini_jarvis/
 - ✅ Long-term memory integration with Orchestrator
 - ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
 - ✅ Automatic RAG context injection for relevant queries
+
+#### ✅ Phase 4.5: RAG Memory Tiering (Refinement) - **COMPLETE**
+- ✅ Tiered memory architecture (core/reference/ephemeral)
+- ✅ Metadata tracking with SQLite (version hashing, TTL, access patterns)
+- ✅ Weighted retrieval (1.5x core, 1.0x reference, 0.7x ephemeral)
+- ✅ Automatic cleanup for expired ephemeral documents
+- ✅ Backward compatible with single collection mode
+- ✅ **UAT Passed**: User acceptance testing completed successfully
 
 #### Phase 5: Voice/Vision Integration (STT/TTS/VLM)
 - [ ] Voice Input (STT with Whisper)
