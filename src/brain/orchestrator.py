@@ -115,14 +115,22 @@ class Orchestrator:
         """
         # Retrieve RAG context if enabled
         rag_context = None
+        rag_system_prompt = None
         if (use_rag_context if use_rag_context is not None else self.use_rag):
             rag_context = await self._get_rag_context(query)
+            if rag_context:
+                # Format RAG context as a system prompt that instructs the model to use it
+                num_chunks = len(rag_context.split('[Context')) - 1
+                rag_system_prompt = (
+                    f"You have access to the following context documents retrieved from the user's knowledge base. "
+                    f"Please use this information to answer the user's question. If the context contains relevant information, "
+                    f"cite it in your response. If the context doesn't contain enough information, you can say so.\n\n"
+                    f"Context Documents:\n{rag_context}\n"
+                )
+                logger.info(f"RAG: Retrieved {num_chunks} context chunks, formatted as system prompt")
         
-        # Enhance query with RAG context if available
+        # Use original query (RAG context is in system prompt)
         enhanced_query = query
-        if rag_context:
-            enhanced_query = f"{rag_context}\n\nUser Query: {query}"
-            logger.info(f"RAG: Retrieved {len(rag_context.split('[Context')) - 1} context chunks")
         
         # Route the query
         target = self.router.route(enhanced_query, context_size, task_hint, force_target)
@@ -138,7 +146,8 @@ class Orchestrator:
                 logger.info("Orchestrator: Using Cloud Burst (Gemini 2.0 Flash)")
                 response, tool_calls = await self._think_with_tools(
                     enhanced_query,
-                    max_tool_iterations
+                    max_tool_iterations,
+                    system_prompt=rag_system_prompt
                 )
                 return response, InferenceTarget.CLOUD, tool_calls
                 
@@ -149,7 +158,11 @@ class Orchestrator:
         logger.info("Orchestrator: Using Local Brain (Llama 3.2 3B)")
         # Note: Local brain doesn't support function calling yet
         # If query needs tools, router should have routed to cloud
-        response = await self.local_brain.think(enhanced_query)
+        # Pass RAG context as system prompt if available
+        response = await self.local_brain.think(
+            enhanced_query,
+            system_prompt=rag_system_prompt
+        )
         return response, InferenceTarget.LOCAL, tool_calls_made
     
     async def _get_rag_context(self, query: str) -> Optional[str]:
@@ -186,7 +199,8 @@ class Orchestrator:
     async def _think_with_tools(
         self,
         query: str,
-        max_iterations: int = 3
+        max_iterations: int = 3,
+        system_prompt: Optional[str] = None
     ) -> Tuple[str, List[Dict[str, Any]]]:
         """
         Think with tool support (for Cloud Brain).
@@ -200,6 +214,7 @@ class Orchestrator:
         Args:
             query: User query
             max_iterations: Maximum tool call iterations
+            system_prompt: Optional system prompt (e.g., RAG context)
             
         Returns:
             Tuple of (final response, tool_calls_made)
@@ -222,10 +237,15 @@ class Orchestrator:
         conversation_history: List[Dict[str, Any]] = []
         tool_calls_made = []  # Track tool calls made during this query
         
-        # First turn: User's query
+        # First turn: User's query (with system prompt if provided)
+        user_message = query
+        if system_prompt:
+            # Include system prompt in the first user message
+            user_message = f"{system_prompt}\n\nUser Query: {query}"
+        
         conversation_history.append({
             "role": "user",
-            "parts": [{"text": query}]
+            "parts": [{"text": user_message}]
         })
         
         iteration = 0

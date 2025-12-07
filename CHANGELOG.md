@@ -2,6 +2,56 @@
 
 All notable changes, issues, and resolutions for Mini-JARVIS.
 
+## [Phase 4.6] - Google Drive Sync (Cloud Integration)
+
+### Added
+- **Google Drive Sync**: Automatic synchronization of Google Drive folders to RAG memory tiers
+- **OAuth 2.0 Authentication**: Secure authentication with Google Drive API using OAuth 2.0
+- **Folder-to-Tier Mapping**: Automatic mapping of Google Drive folders to RAG tiers:
+  - `JARVIS-Core/` → core tier (1.5x retrieval boost, permanent)
+  - `JARVIS-Reference/` → reference tier (1.0x normal weight, permanent)
+  - `JARVIS-Ephemeral/` → ephemeral tier (0.7x weight, 30-day TTL)
+- **Incremental Sync**: Only downloads and ingests changed files (tracks file hashes and modification times)
+- **Version Hash Tracking**: SHA256 hash tracking for detecting content changes
+- **Google Docs Support**: Exports Google Docs, Sheets, and Slides as text for ingestion
+- **Recursive Folder Scanning**: Scans subfolders recursively to find all documents
+- **Sync State Persistence**: Maintains sync state in `.drive_sync_state.json` for efficient updates
+- **Enhanced Scripts**:
+  - `scripts/sync_google_drive.py`: Main sync script with OAuth authentication
+  - `scripts/SETUP_GOOGLE_DRIVE.md`: Comprehensive setup guide
+  - `scripts/GOOGLE_DRIVE_QUICKSTART.md`: Quick start reference
+  - `scripts/test_drive_sync_retrieval.py`: Test retrieval from synced documents
+
+### Features
+- **Automatic Tier Assignment**: Documents are automatically assigned to the correct tier based on folder location
+- **Efficient Updates**: Only processes new or modified files, making subsequent syncs fast
+- **Token Persistence**: OAuth token saved for future syncs (no re-authentication needed)
+- **Error Handling**: Graceful error handling with detailed logging
+- **Dry Run Mode**: Preview what would be synced without actually syncing
+
+### Fixed
+
+#### RAG Context Integration with Cloud Brain
+- **Issue:** RAG context was being retrieved but not properly formatted for Gemini, causing it to ignore the context
+- **Resolution:**
+  - Updated `orchestrator.py` to format RAG context as a system prompt that explicitly instructs the model to use the provided context
+  - Added proper context formatting: "You have access to the following context documents... Please use this information to answer..."
+  - Both Cloud Brain (Gemini) and Local Brain now receive RAG context as system prompts
+  - Responses now properly cite sources (Context 1, Context 2, etc.)
+- **Status:** ✅ Resolved - RAG context now properly integrated with both local and cloud inference
+
+### Testing
+- Manual testing completed with real Google Drive folders
+- Verified incremental sync (only changed files are processed)
+- Verified tier mapping (folders correctly map to tiers)
+- Verified Google Docs export functionality
+- Tested retrieval from synced documents
+
+### Dependencies Added
+- `google-api-python-client>=2.100.0` - Google Drive API client
+- `google-auth-httplib2>=0.1.1` - HTTP transport for Google Auth
+- `google-auth-oauthlib>=1.1.0` - OAuth 2.0 for Google APIs
+
 ## [Phase 4.5] - RAG Memory Tiering (Refinement)
 
 ### Added

@@ -45,3 +45,9 @@ data/
 *.tmp
 *.bak
 
+# Google Drive Sync (Phase 4.6)
+credentials.json
+token.json
+.drive_sync_state.json
+
+.coverage

@@ -17,9 +17,10 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed history of issues, fixes, and impr
 2. ✅ **Phase 3: Agentic Layer** (Tools & MCP Server) - **COMPLETE**
 3. ✅ **Phase 4: RAG Pipeline** (Long-term Memory) - **COMPLETE**
 4. ✅ **Phase 4.5: RAG Memory Tiering** (Refinement) - **COMPLETE**
-5. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM) - **NEXT**
+5. ✅ **Phase 4.6: Google Drive Sync** (Cloud Integration) - **COMPLETE**
+6. 📋 **Phase 5: Voice/Vision Integration** (STT/TTS/VLM) - **NEXT**
 
-**Rationale:** Tools first to enable real-time data access (Weather, Time), then memory for context, then voice/vision for natural interaction.
+**Rationale:** Tools first to enable real-time data access (Weather, Time), then memory for context, then cloud sync for seamless document management, then voice/vision for natural interaction.
 
 ## Hardware Setup
 
@@ -155,9 +156,8 @@ python scripts/chat.py
 ```
 
 **RAG Features:**
-- **Document Support**: Text (.txt), Markdown (.md), PDF (.pdf)
+- **Document Support**: Text (.txt), Markdown (.md), PDF (.pdf), Google Docs (exported as text)
 - **Local Embeddings**: Uses `sentence-transformers/all-MiniLM-L6-v2` (~80MB, CPU-friendly)
-- **API Fallback**: Falls back to Gemini embedding API if local model unavailable
 - **Automatic Context**: RAG context is automatically injected into queries when relevant
 - **Storage**: Vector database stored at `~/.jarvis/memory` on NVMe
 - **Tiered Memory** (Phase 4.5):
@@ -166,6 +166,42 @@ python scripts/chat.py
   - **Ephemeral Tier**: Temporary documents (0.7x weight, TTL-based expiry)
   - **Metadata Tracking**: SQLite database for version hashing, TTL, and access patterns
   - **Automatic Cleanup**: Expired ephemeral documents are automatically removed
+- **Google Drive Sync** (Phase 4.6):
+  - **Automatic Sync**: Syncs Google Drive folders to RAG memory tiers
+  - **Folder Mapping**: `JARVIS-Core/` → core tier, `JARVIS-Reference/` → reference tier, `JARVIS-Ephemeral/` → ephemeral tier
+  - **Incremental Sync**: Only downloads and ingests changed files
+  - **Version Tracking**: Tracks file hashes and modification times
+  - **Google Docs Support**: Exports Google Docs/Sheets/Slides as text
+
+#### 6. Setup Google Drive Sync (Phase 4.6 - Optional)
+
+Sync your Google Drive folders to RAG memory automatically.
+
+```bash
+# First-time setup (see scripts/SETUP_GOOGLE_DRIVE.md for detailed instructions)
+# 1. Get OAuth credentials from Google Cloud Console
+# 2. Save as credentials.json in project root
+# 3. Create folders in Google Drive: JARVIS-Core/, JARVIS-Reference/, JARVIS-Ephemeral/
+
+# Run sync (authenticates on first run)
+python scripts/sync_google_drive.py
+
+# Sync specific folder
+python scripts/sync_google_drive.py --folder JARVIS-Core
+
+# Dry run (see what would sync)
+python scripts/sync_google_drive.py --dry-run
+```
+
+**Google Drive Sync Features:**
+- **OAuth 2.0 Authentication**: Secure authentication with token persistence
+- **Folder-to-Tier Mapping**: Automatic mapping of Google Drive folders to RAG tiers
+- **Incremental Sync**: Only syncs new or modified files (tracks hashes and modification times)
+- **Google Docs Support**: Exports Google Docs, Sheets, and Slides as text
+- **Recursive Scanning**: Scans subfolders recursively
+- **Sync State Tracking**: Maintains sync state for efficient incremental updates
+
+See `scripts/SETUP_GOOGLE_DRIVE.md` for detailed setup instructions.
 
 ## Project Structure
 
@@ -197,7 +233,8 @@ mini_jarvis/
 │       ├── __init__.py
 │       ├── rag_server.py     # Main RAG server interface
 │       ├── document_ingester.py  # Document loading and chunking
-│       └── retriever.py      # Semantic search and retrieval
+│       ├── retriever.py      # Semantic search and retrieval
+│       └── metadata_tracker.py  # Metadata tracking (Phase 4.5)
 ├── scripts/
 │   ├── test_brain.py         # Test Local Brain
 │   ├── test_cloud_burst.py   # Test Cloud Burst
@@ -206,10 +243,15 @@ mini_jarvis/
 │   ├── test_tool_prompts.py  # Test prompts that trigger tools
 │   ├── test_tools_live.py    # Test tools through orchestrator
 │   ├── ingest_documents.py   # Ingest documents into RAG memory
+│   ├── sync_google_drive.py  # Google Drive sync (Phase 4.6)
+│   ├── cleanup_expired_memory.py  # Cleanup expired ephemeral docs
 │   ├── test_rag.py           # Test RAG retrieval
+│   ├── test_drive_sync_retrieval.py  # Test retrieval from synced docs
 │   ├── chat.py               # Interactive chat interface
 │   ├── setup.sh              # Automated setup script
-│   └── check_setup.py        # Prerequisites checker
+│   ├── check_setup.py        # Prerequisites checker
+│   ├── SETUP_GOOGLE_DRIVE.md # Google Drive setup guide
+│   └── GOOGLE_DRIVE_QUICKSTART.md  # Quick start guide
 └── requirements.txt
 ```
 
@@ -230,11 +272,12 @@ mini_jarvis/
 - ✅ **Function Calling**: Gemini can invoke tools automatically based on user queries
 - ✅ **RAG Pipeline**: Long-term memory with ChromaDB, document ingestion, and semantic search
 - ✅ **Tiered Memory**: Three-tier architecture (core/reference/ephemeral) with weighted retrieval
-- ✅ **Interactive Chat**: Command-line interface for testing
+- ✅ **Google Drive Sync**: Automatic sync of Google Drive folders to RAG memory tiers
+- ✅ **Interactive Chat**: Command-line interface with RAG context integration
 
 ## Current Status
 
-### ✅ Implemented (Phase 1, 2, 3, 4 & 4.5)
+### ✅ Implemented (Phase 1, 2, 3, 4, 4.5 & 4.6)
 - **Phase 1: Local Brain** - Ollama with Llama 3.2 3B for fast, private inference
 - **Phase 2: Cloud Burst** - Gemini 2.0 Flash API for complex reasoning
 - **Phase 3: Agentic Layer** - Tool system with 6 integrated tools:
@@ -247,19 +290,26 @@ mini_jarvis/
 - **Phase 4: RAG Pipeline** - Long-term memory system:
   - ✅ ChromaDB vector database (persistent storage on NVMe)
   - ✅ Document ingestion (text, markdown, PDF support)
-  - ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2) with API fallback
+  - ✅ Local embeddings (sentence-transformers/all-MiniLM-L6-v2)
   - ✅ Semantic search with top-k retrieval
-  - ✅ Automatic context injection into queries
+  - ✅ Automatic context injection into queries with proper formatting
 - **Phase 4.5: RAG Memory Tiering** - Intelligent memory management:
   - ✅ Three-tier architecture (core/reference/ephemeral)
   - ✅ Weighted retrieval (1.5x core, 1.0x reference, 0.7x ephemeral)
   - ✅ Metadata tracking with SQLite (version hashing, TTL, access patterns)
   - ✅ Automatic cleanup for expired ephemeral documents
   - ✅ Backward compatible with single collection mode
+- **Phase 4.6: Google Drive Sync** - Cloud document integration:
+  - ✅ OAuth 2.0 authentication with token persistence
+  - ✅ Folder-to-tier mapping (JARVIS-Core/ → core, JARVIS-Reference/ → reference, JARVIS-Ephemeral/ → ephemeral)
+  - ✅ Incremental sync (only changed files)
+  - ✅ Version hash tracking (SHA256)
+  - ✅ Google Docs/Sheets/Slides export support
+  - ✅ Recursive folder scanning
 - Smart Router (automatic local/cloud routing, routes tool queries to cloud)
 - Orchestrator (seamless brain coordination with multi-turn tool execution and RAG context)
 - Tool Registry & Executor (MCP-like server for tool management)
-- Interactive Chat Interface with RAG support
+- Interactive Chat Interface with RAG context integration
 
 ### 🚧 Development Phases
 
@@ -278,6 +328,15 @@ mini_jarvis/
 - ✅ Automatic cleanup for expired ephemeral documents
 - ✅ Backward compatible with single collection mode
 - ✅ **UAT Passed**: User acceptance testing completed successfully
+
+#### ✅ Phase 4.6: Google Drive Sync (Cloud Integration) - **COMPLETE**
+- ✅ OAuth 2.0 authentication with Google Drive API
+- ✅ Folder-to-tier mapping (JARVIS-Core/ → core tier, etc.)
+- ✅ Incremental sync with version hash tracking
+- ✅ Google Docs/Sheets/Slides export support
+- ✅ Recursive folder scanning
+- ✅ Sync state persistence for efficient updates
+- ✅ Integration with tiered RAG memory system
 
 #### Phase 5: Voice/Vision Integration (STT/TTS/VLM)
 - [ ] Voice Input (STT with Whisper)

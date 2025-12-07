@@ -6,6 +6,8 @@ import sys
 import time
 import tempfile
 import shutil
+import logging
+from datetime import datetime
 from pathlib import Path
 
 # Add project root to path
@@ -14,30 +16,59 @@ sys.path.insert(0, str(project_root))
 
 from src.memory.rag_server import RAGServer
 
+# Setup logging
+def setup_uat_logging():
+    """Setup logging for UAT tests."""
+    logs_dir = project_root / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = logs_dir / f"uat_{timestamp}.log"
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)8s] %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    logger = logging.getLogger("UAT")
+    logger.info(f"UAT logging initialized. Log file: {log_file}")
+    return logger, log_file
+
 
 class UATResults:
     """Track UAT test results."""
     
-    def __init__(self):
+    def __init__(self, logger=None):
         self.passed = []
         self.failed = []
         self.warnings = []
+        self.logger = logger or logging.getLogger("UAT")
     
     def add_pass(self, test_name, details=""):
         self.passed.append((test_name, details))
-        print(f"✅ PASS: {test_name}")
+        msg = f"✅ PASS: {test_name}"
         if details:
-            print(f"   {details}")
+            msg += f" - {details}"
+        print(msg)
+        self.logger.info(f"PASS: {test_name} - {details}")
     
     def add_fail(self, test_name, error):
         self.failed.append((test_name, error))
         print(f"❌ FAIL: {test_name}")
         print(f"   Error: {error}")
+        self.logger.error(f"FAIL: {test_name} - {error}")
     
     def add_warning(self, test_name, warning):
         self.warnings.append((test_name, warning))
         print(f"⚠️  WARN: {test_name}")
         print(f"   {warning}")
+        self.logger.warning(f"WARN: {test_name} - {warning}")
     
     def print_summary(self):
         print("\n" + "="*60)
@@ -510,22 +541,47 @@ This is critical for long-term memory functionality."""
 
 async def main():
     """Run all UAT tests."""
+    # Setup logging
+    logger, log_file = setup_uat_logging()
+    
     print("="*60)
     print("Mini-JARVIS RAG Pipeline - User Acceptance Testing (UAT)")
     print("="*60)
-    print("\nRunning 5 real-world scenarios...")
+    print(f"\nLog file: {log_file}")
+    print("Running 5 real-world scenarios...\n")
     
-    results = UATResults()
+    logger.info("="*60)
+    logger.info("Mini-JARVIS RAG Pipeline - User Acceptance Testing (UAT)")
+    logger.info("="*60)
+    logger.info("Starting UAT test suite...")
+    
+    results = UATResults(logger=logger)
     
     # Run all UAT tests
+    logger.info("Starting UAT 1: Ingest TXT → Verify Retrieval")
     await test_1_ingest_txt_and_retrieve(results)
+    
+    logger.info("Starting UAT 2: Ingest PDF → Test Chunking")
     await test_2_ingest_pdf_and_chunking(results)
+    
+    logger.info("Starting UAT 3: Query with No Matches → Graceful Failure")
     await test_3_query_no_matches(results)
+    
+    logger.info("Starting UAT 4: Large Document → Performance Test")
     await test_4_large_document_performance(results)
+    
+    logger.info("Starting UAT 5: Reboot → Persistence Check")
     await test_5_reboot_persistence(results)
     
     # Print summary
     all_passed = results.print_summary()
+    logger.info("="*60)
+    logger.info("UAT SUMMARY")
+    logger.info(f"Passed: {len(results.passed)}, Failed: {len(results.failed)}, Warnings: {len(results.warnings)}")
+    logger.info(f"UAT {'PASSED' if all_passed else 'FAILED'}")
+    logger.info(f"Full log saved to: {log_file}")
+    
+    print(f"\n📝 Full log saved to: {log_file}")
     
     return 0 if all_passed else 1
 
