@@ -62,7 +62,7 @@ async def test_chat_with_rag():
             else:
                 print("   ⚠️  Cloud Burst (Gemini 2.0 Flash) API key invalid or unavailable")
         else:
-            print("   ⚠️  Cloud Burst not configured (GEMINI_API_KEY not set)")
+            print("   ⚠️  Cloud Burst not configured (OLLAMA_CLOUD_API_KEY not set)")
         
         print("\n" + "="*70)
         print("Testing Queries with RAG Context")

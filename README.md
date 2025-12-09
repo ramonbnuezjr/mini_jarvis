@@ -84,21 +84,34 @@ pip install -r requirements.txt
 # Create .env file
 cat > .env << EOF
 OLLAMA_BASE_URL=http://localhost:11434
-# Get your Gemini API key from: https://makersuite.google.com/app/apikey
-# GEMINI_API_KEY=your-key-here
+
+# Ollama Cloud Model (for Cloud Burst)
+# No API key needed - authentication handled by 'ollama signin'
+OLLAMA_CLOUD_MODEL=gpt-oss:120b-cloud
 EOF
 ```
 
-#### 3a. Get API Keys (Recommended)
+#### 3a. Setup Ollama Cloud (Hybrid Pattern)
 
-**Gemini API Key (Required for Cloud Burst and Tools):**
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key and add it to `.env`:
+**Ollama Cloud uses a hybrid pattern - local Ollama gateway with cloud models:**
+
+1. **Sign in to Ollama Cloud** (one-time):
    ```bash
-   GEMINI_API_KEY=your-actual-key-here
+   ollama signin
    ```
+   This will open a browser to authenticate. No API key needed in code!
+
+2. **Pull the cloud model**:
+   ```bash
+   ollama pull gpt-oss:120b-cloud
+   ```
+   This downloads model metadata. The model runs on Ollama Cloud infrastructure automatically.
+
+3. **How it works:**
+   - Your code talks to local Ollama (`http://localhost:11434`)
+   - When you use `gpt-oss:120b-cloud`, Ollama automatically offloads to cloud
+   - No API keys in code - authentication handled by `ollama signin`
+   - Single endpoint for both local and cloud models
 
 **OpenWeatherMap API Key (Optional, for Weather Tool):**
 1. Go to [OpenWeatherMap](https://openweathermap.org/api)
@@ -110,7 +123,7 @@ EOF
    ```
 
 **Note**: 
-- Gemini API key is required for Cloud Burst and tool execution (Wikipedia, ArXiv, Web Search, etc.)
+- Ollama Cloud setup required for Cloud Burst (run `ollama signin` and `ollama pull gpt-oss:120b-cloud`)
 - Weather API key is optional - the weather tool will report if the key is missing
 - Other tools (Wikipedia, ArXiv, DuckDuckGo, HackerNews) work without API keys
 
@@ -120,8 +133,11 @@ EOF
 # Test Local Brain only
 python scripts/test_brain.py
 
-# Test Cloud Burst (requires GEMINI_API_KEY)
+# Test Cloud Burst (requires ollama signin and model pull)
 python scripts/test_cloud_burst.py
+
+# Test hybrid setup
+python scripts/test_hybrid_ollama.py
 
 # Interactive chat (uses both Local and Cloud automatically)
 python scripts/chat.py
@@ -216,7 +232,7 @@ mini_jarvis/
 │   ├── brain/
 │   │   ├── __init__.py
 │   │   ├── local_brain.py    # Ollama client (Llama 3.2 3B)
-│   │   ├── cloud_brain.py    # Gemini 2.0 Flash API client
+│   │   ├── cloud_brain.py    # Ollama Cloud client (gpt-oss:120b-cloud, hybrid pattern)
 │   │   ├── router.py         # Local vs Cloud routing logic
 │   │   ├── orchestrator.py  # Coordinates Local and Cloud brains
 │   │   └── tool_executor.py # Executes tools from LLM function calls
@@ -238,7 +254,9 @@ mini_jarvis/
 ├── scripts/
 │   ├── test_brain.py         # Test Local Brain
 │   ├── test_cloud_burst.py   # Test Cloud Burst
-│   ├── diagnose_gemini.py    # Diagnose Gemini API issues
+│   ├── diagnose_gemini.py    # Diagnose Gemini API issues (legacy, pre-migration)
+│   ├── setup_ollama_cloud.sh # Setup script for Ollama Cloud authentication
+│   ├── test_hybrid_ollama.py # Test hybrid Ollama pattern
 │   ├── test_tools.py         # Test tool registry
 │   ├── test_tool_prompts.py  # Test prompts that trigger tools
 │   ├── test_tools_live.py    # Test tools through orchestrator
@@ -265,11 +283,12 @@ mini_jarvis/
 ## Features
 
 - ✅ **Local Brain**: Ollama with Llama 3.2 3B for fast, private inference
-- ✅ **Cloud Burst**: Gemini 2.0 Flash API for complex reasoning
+- ✅ **Cloud Burst**: Ollama Cloud with gpt-oss:120b-cloud for complex reasoning (128K context, native tool calling)
+- ✅ **Hybrid Pattern**: Local Ollama gateway - single endpoint for local and cloud models
 - ✅ **Smart Router**: Automatically routes queries to local or cloud based on complexity
 - ✅ **Orchestrator**: Seamlessly coordinates between Local Brain and Cloud Burst
 - ✅ **Tool System**: 6 tools integrated (Weather, Time, Wikipedia, ArXiv, DuckDuckGo, HackerNews)
-- ✅ **Function Calling**: Gemini can invoke tools automatically based on user queries
+- ✅ **Function Calling**: Ollama Cloud can invoke tools automatically based on user queries
 - ✅ **RAG Pipeline**: Long-term memory with ChromaDB, document ingestion, and semantic search
 - ✅ **Tiered Memory**: Three-tier architecture (core/reference/ephemeral) with weighted retrieval
 - ✅ **Google Drive Sync**: Automatic sync of Google Drive folders to RAG memory tiers
@@ -279,7 +298,7 @@ mini_jarvis/
 
 ### ✅ Implemented (Phase 1, 2, 3, 4, 4.5 & 4.6)
 - **Phase 1: Local Brain** - Ollama with Llama 3.2 3B for fast, private inference
-- **Phase 2: Cloud Burst** - Gemini 2.0 Flash API for complex reasoning
+- **Phase 2: Cloud Burst** - Ollama Cloud with gpt-oss:120b-cloud (hybrid pattern: local gateway, cloud offloading)
 - **Phase 3: Agentic Layer** - Tool system with 6 integrated tools:
   - ✅ Weather Tool (requires OpenWeatherMap API key)
   - ✅ Time/Date Tool
@@ -357,10 +376,10 @@ mini_jarvis/
 **Resolution:**
 - Increased default sentences from 3 to 10 for better context
 - Improved disambiguation handling logic
-- Updated tool description to guide Gemini to use specific queries like "Mars (planet)" for planets
+- Updated tool description to guide the LLM to use specific queries like "Mars (planet)" for planets
 - **Workaround:** When asking about planets, use specific names like "Mars (planet)" or "Jupiter (planet)" in queries
 
-**Status:** Partially resolved. The tool works better with specific queries. Simple planet names may still hit disambiguation, but the tool description now guides Gemini to use specific names.
+**Status:** Partially resolved. The tool works better with specific queries. Simple planet names may still hit disambiguation, but the tool description now guides the LLM to use specific names.
 
 #### 2. DuckDuckGo Web Search - Poor News Results & Rate Limits
 
@@ -387,7 +406,7 @@ mini_jarvis/
 
 **Root Cause:** 
 - Libraries were in `requirements.txt` but not installed in the virtual environment
-- Error messages from tools were being misinterpreted by Gemini
+- Error messages from tools were being misinterpreted by the LLM (historical - pre-migration)
 
 **Resolution:**
 - Verified packages were installed: `pip install wikipedia arxiv duckduckgo-search`
@@ -454,7 +473,7 @@ mini_jarvis/
 
 ### API & Configuration Issues
 
-#### 7. Gemini API Model Name Change
+#### 7. Gemini API Model Name Change (Historical - Pre-Migration)
 
 **Problem:** `404 Not Found` errors when calling Gemini API with `gemini-1.5-flash`.
 
@@ -465,9 +484,9 @@ mini_jarvis/
 - Updated `CloudBrain` to use `gemini-2.0-flash` as default model
 - Updated all test scripts to use correct model name
 
-**Status:** ✅ Resolved. All code now uses `gemini-2.0-flash`.
+**Status:** ✅ Resolved (historical). System migrated to Ollama Cloud (see `MIGRATION_OLLAMA_CLOUD.md`).
 
-#### 8. Conversation History Format for Function Calling
+#### 8. Conversation History Format for Function Calling (Historical - Pre-Migration)
 
 **Problem:** `400 Bad Request` errors when Gemini tried to process tool results in multi-turn conversations.
 
@@ -481,7 +500,7 @@ mini_jarvis/
   - User function responses (tool results)
 - Updated `Orchestrator._think_with_tools()` to correctly format and send conversation history
 
-**Status:** ✅ Resolved. Multi-turn tool execution now works correctly.
+**Status:** ✅ Resolved (historical). System migrated to Ollama Cloud with OpenAI-compatible format (see `MIGRATION_OLLAMA_CLOUD.md`).
 
 ### Development Issues
 
@@ -503,7 +522,7 @@ mini_jarvis/
 
 1. **Wikipedia Disambiguation:** Simple planet names (e.g., "Mars") may hit disambiguation. Use specific names like "Mars (planet)" for best results.
 
-2. **Local LLM Function Calling:** Llama 3.2 3B doesn't support function calling, so all tool queries must use cloud (Gemini 2.0 Flash).
+2. **Local LLM Function Calling:** Llama 3.2 3B doesn't support function calling, so all tool queries must use cloud (Ollama Cloud with gpt-oss:120b-cloud).
 
 3. **Weather API Key:** Optional but required for weather tool functionality. Tool gracefully reports when API key is missing.
 

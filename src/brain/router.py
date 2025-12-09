@@ -15,7 +15,7 @@ class InferenceTarget(str, Enum):
 
 class Router:
     """
-    Router decides whether to use local (Ollama) or cloud (API) inference.
+    Router decides whether to use local (Ollama) or cloud (Ollama Cloud) inference.
     
     Uses heuristics based on:
     - Query complexity

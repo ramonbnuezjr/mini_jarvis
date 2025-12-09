@@ -11,9 +11,11 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 - Handles simple queries and basic tasks
 
 ### ✅ Phase 2: Cloud Burst (IMPLEMENTED)
-- Google Gemini 2.0 Flash API for complex reasoning
+- Ollama Cloud with gpt-oss:120b-cloud for complex reasoning (hybrid pattern)
+- Local Ollama gateway - single endpoint for local and cloud models
 - Automatic routing based on query complexity
 - Orchestrator coordinates Local and Cloud brains
+- Authentication via `ollama signin` (no API keys in code)
 
 ### ✅ Phase 3: Agentic Layer (Tools & MCP Server) - **IMPLEMENTED**
 - **MCP Server:** Tool Registry and Executor for managing and executing tools
@@ -24,7 +26,7 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
   - ArXiv Research Paper Search Tool
   - DuckDuckGo Web Search Tool (with news search support)
   - HackerNews Tech News Tool
-- **Function Calling:** Gemini 2.0 Flash can invoke tools automatically
+   - **Function Calling:** Ollama Cloud (gpt-oss:120b-cloud) can invoke tools automatically with OpenAI-compatible format
 - **Multi-turn Tool Execution:** Supports iterative tool use in conversations
 - **Why first?** To give JARVIS real-time data (Weather, Time) immediately.
 - Enables practical utility before deep knowledge
@@ -74,7 +76,7 @@ Hybrid Intelligence: Local speed for wake/basic tasks + Cloud power for complex 
 
    - **Local LLM:** Ollama with Llama 3.2 3B for fast, capable chat. If Llama 3.2 3B is insufficient (e.g., complex medical analysis), burst to cloud rather than upgrading to slower local 7B+ models.
 
-   - **Cloud Burst:** Google Gemini 2.0 Flash API for deep reasoning when local model is insufficient. Handles complex queries, large contexts, and prepares for tool-use capabilities.
+   - **Cloud Burst:** Ollama Cloud with gpt-oss:120b-cloud for deep reasoning when local model is insufficient. Uses hybrid pattern - local Ollama gateway with automatic cloud offloading. Handles complex queries, large contexts (128K), and native tool calling.
 
 2. **Agentic Layer (Tools & MCP Server)** ✅ **IMPLEMENTED**
 

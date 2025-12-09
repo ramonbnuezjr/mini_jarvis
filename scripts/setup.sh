@@ -139,8 +139,11 @@ setup_env() {
 OLLAMA_BASE_URL=http://localhost:11434
 
 # Cloud API Keys (for Cloud Burst feature)
-# Get your Gemini API key from: https://makersuite.google.com/app/apikey
-# GEMINI_API_KEY=your-key-here
+# Ollama Cloud API (OpenAI-compatible)
+# Get your API key from: https://ollama.cloud
+OLLAMA_CLOUD_API_KEY=your-key-here
+OLLAMA_CLOUD_BASE_URL=https://api.ollama.cloud/v1
+OLLAMA_CLOUD_MODEL=gpt-oss:20b-cloud
 
 # Optional: Other cloud providers
 # ANTHROPIC_API_KEY=your-key-here

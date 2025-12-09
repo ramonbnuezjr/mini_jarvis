@@ -86,12 +86,12 @@ class ToolExecutor:
             List of function calls or None if no function calls
         """
         try:
-            # Try to parse as JSON (Gemini returns function calls as JSON string)
+            # Try to parse as JSON (Cloud Brain returns function calls as JSON string)
             data = json.loads(response)
             if "function_calls" in data:
                 function_calls = data["function_calls"]
-                # Convert Gemini format to our format
-                # Gemini format: {"name": "...", "args": {...}}
+                # Convert to our internal format
+                # Format: {"name": "...", "args": {...}}
                 parsed_calls = []
                 for fc in function_calls:
                     # Handle both direct format and nested format

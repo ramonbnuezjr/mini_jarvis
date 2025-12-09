@@ -72,11 +72,11 @@ async def chat_loop():
         if orchestrator.cloud_brain:
             cloud_ok = await orchestrator.cloud_brain.check_health()
             if cloud_ok:
-                print("✅ Cloud Burst (Gemini 2.0 Flash) available\n")
+                print(f"✅ Cloud Burst ({orchestrator.cloud_model}) available\n")
             else:
-                print("⚠️  Cloud Burst (Gemini 2.0 Flash) API key invalid or unavailable\n")
+                print(f"⚠️  Cloud Burst ({orchestrator.cloud_model}) API key invalid or unavailable\n")
         else:
-            print("⚠️  Cloud Burst not configured (GEMINI_API_KEY not set)\n")
+            print("⚠️  Cloud Burst not configured (OLLAMA_CLOUD_API_KEY not set)\n")
         
         while True:
             try:

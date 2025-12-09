@@ -84,7 +84,7 @@ async def test_tool_prompts():
                 return
                 
             if not orchestrator.cloud_brain:
-                print("⚠️  Cloud Brain not available (GEMINI_API_KEY not set)")
+                print("⚠️  Cloud Brain not available (OLLAMA_CLOUD_API_KEY not set)")
                 print("   Tool calls require Cloud Brain. Skipping tests.\n")
                 return
                 

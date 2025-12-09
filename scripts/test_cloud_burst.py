@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test script to verify Cloud Burst (Gemini 2.0 Flash) is working."""
+"""Test script to verify Cloud Burst (Ollama Cloud with gpt-oss:20b-cloud) is working."""
 
 import asyncio
 import logging
@@ -31,12 +31,12 @@ async def test_cloud_brain_direct():
     try:
         async with CloudBrain() as cloud:
             # Health check
-            print("🔍 Checking Gemini API health...")
+            print(f"🔍 Checking Ollama Cloud API health ({cloud.model})...")
             is_healthy = await cloud.check_health()
             if is_healthy:
-                print("✅ Gemini API is accessible and key is valid!")
+                print("✅ Ollama Cloud API is accessible and key is valid!")
             else:
-                print("❌ Gemini API health check failed")
+                print("❌ Ollama Cloud API health check failed")
                 return False
             
             # Test query
@@ -46,9 +46,9 @@ async def test_cloud_brain_direct():
             return True
             
     except ValueError as e:
-        if "GEMINI_API_KEY" in str(e):
+        if "OLLAMA_CLOUD_API_KEY" in str(e):
             print(f"❌ {e}")
-            print("   Make sure GEMINI_API_KEY is set in .env file")
+            print("   Make sure OLLAMA_CLOUD_API_KEY is set in .env file")
         else:
             print(f"❌ Error: {e}")
         return False
@@ -68,7 +68,7 @@ async def test_orchestrator_routing():
             # Test 1: Simple query (should use local)
             print("\n📝 Test 1: Simple query (should use Local Brain)")
             query1 = "What is Python?"
-            response1, target1 = await orchestrator.think(query1)
+            response1, target1, tool_calls1 = await orchestrator.think(query1)
             status1 = "✅" if target1 == InferenceTarget.LOCAL else "❌"
             print(f"{status1} Query: '{query1}'")
             print(f"   Target: {target1.value} (expected: local)")
@@ -77,7 +77,7 @@ async def test_orchestrator_routing():
             # Test 2: Complex query (should use cloud)
             print("\n📝 Test 2: Complex query (should use Cloud Burst)")
             query2 = "Analyze and compare the economic impact of AI versus the industrial revolution"
-            response2, target2 = await orchestrator.think(query2)
+            response2, target2, tool_calls2 = await orchestrator.think(query2)
             status2 = "✅" if target2 == InferenceTarget.CLOUD else "❌"
             print(f"{status2} Query: '{query2[:60]}...'")
             print(f"   Target: {target2.value} (expected: cloud)")
@@ -86,7 +86,7 @@ async def test_orchestrator_routing():
             # Test 3: Tool-requiring query (should use cloud)
             print("\n📝 Test 3: Tool-requiring query (should use Cloud Burst)")
             query3 = "What's the weather today?"
-            response3, target3 = await orchestrator.think(query3)
+            response3, target3, tool_calls3 = await orchestrator.think(query3)
             status3 = "✅" if target3 == InferenceTarget.CLOUD else "❌"
             print(f"{status3} Query: '{query3}'")
             print(f"   Target: {target3.value} (expected: cloud)")
@@ -104,7 +104,7 @@ async def test_orchestrator_routing():
 async def main():
     """Run all tests."""
     print("\n" + "="*60)
-    print("Mini-JARVIS: Cloud Burst (Gemini 2.0 Flash) Test Suite")
+    print("Mini-JARVIS: Cloud Burst (Ollama Cloud) Test Suite")
     print("="*60)
     
     # Test 1: Direct Cloud Brain
@@ -121,7 +121,7 @@ async def main():
     print("✅ Cloud Burst tests complete!")
     print("="*60)
     print("\n💡 Tip: Run 'python scripts/chat.py' to try it interactively")
-    print("   Complex queries will automatically use Gemini 2.0 Flash (☁️)\n")
+    print("   Complex queries will automatically use Ollama Cloud (☁️)\n")
 
 
 if __name__ == "__main__":

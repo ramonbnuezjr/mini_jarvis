@@ -2,6 +2,53 @@
 
 All notable changes, issues, and resolutions for Mini-JARVIS.
 
+## [Migration] - Gemini 2.0 Flash → Ollama Cloud (Hybrid Pattern)
+
+### Changed
+- **Cloud Burst Migration**: Migrated from Google Gemini 2.0 Flash API to Ollama Cloud using hybrid pattern
+- **Architecture**: Now uses local Ollama gateway (`http://localhost:11434`) for both local and cloud models
+- **Authentication**: Removed API key requirement - authentication handled by `ollama signin` (one-time)
+- **Model**: Updated from `gpt-oss:20b-cloud` to `gpt-oss:120b-cloud`
+
+### Added
+- **Hybrid Pattern**: Local Ollama gateway with automatic cloud model offloading
+- **Setup Scripts**:
+  - `scripts/setup_ollama_cloud.sh`: Interactive setup for Ollama Cloud authentication
+  - `scripts/test_hybrid_ollama.py`: Test script for hybrid pattern verification
+- **Regression Tests**: `tests/test_cloud_brain_regression.py` - Comprehensive regression test suite (10/10 passed)
+
+### Removed
+- `GEMINI_API_KEY` environment variable (no longer needed)
+- `OLLAMA_CLOUD_API_KEY` environment variable (authentication via `ollama signin`)
+- `OLLAMA_CLOUD_BASE_URL` environment variable (uses local Ollama gateway)
+
+### Benefits
+- **No API keys in code**: More secure, no risk of committing secrets
+- **Single endpoint**: Simpler architecture, easier debugging
+- **Same API format**: Works with existing tools and integrations
+- **Automatic offloading**: Cloud models handled transparently
+- **Simplified router**: Just chooses model name, not provider
+- **Better pricing**: Flat-fee model vs per-token pricing
+
+### Migration Steps
+1. Run `ollama signin` to authenticate with Ollama Cloud (one-time)
+2. Run `ollama pull gpt-oss:120b-cloud` to download cloud model metadata
+3. Update `.env` to remove API key variables
+4. Test with `python scripts/test_hybrid_ollama.py`
+
+### Testing
+- ✅ All regression tests passed (10/10)
+- ✅ Tool calling works with cloud brain
+- ✅ RAG context injection works with cloud brain
+- ✅ Multi-turn conversations work
+- ✅ Router logic unchanged and working
+- ✅ Backward compatibility maintained
+
+### Documentation
+- Updated `README.md` with hybrid pattern setup instructions
+- Updated `MIGRATION_OLLAMA_CLOUD.md` with complete migration guide
+- Updated `architecture.md` to reflect new cloud burst architecture
+
 ## [Phase 4.6] - Google Drive Sync (Cloud Integration)
 
 ### Added

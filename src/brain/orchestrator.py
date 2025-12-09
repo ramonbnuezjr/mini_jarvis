@@ -26,13 +26,13 @@ class Orchestrator:
     Main orchestrator that coordinates local and cloud inference.
     
     Uses the Router to decide between Local Brain (Llama 3.2 3B) and
-    Cloud Burst (Gemini 2.0 Flash) based on query complexity and requirements.
+    Cloud Burst (Ollama Cloud with gpt-oss:20b-cloud) based on query complexity and requirements.
     """
     
     def __init__(
         self,
         prefer_local: bool = True,
-        cloud_model: str = "gemini-2.0-flash",
+        cloud_model: Optional[str] = None,
         tool_registry: Optional[ToolRegistry] = None,
         rag_server: Optional["RAGServer"] = None,
         use_rag: bool = True
@@ -42,13 +42,14 @@ class Orchestrator:
         
         Args:
             prefer_local: Prefer local inference when possible
-            cloud_model: Cloud model to use (Gemini variant)
+            cloud_model: Cloud model to use (defaults to OLLAMA_CLOUD_MODEL env var or gpt-oss:20b-cloud)
             tool_registry: ToolRegistry instance (creates default if None)
             rag_server: RAGServer instance for long-term memory (optional)
             use_rag: Whether to use RAG context when available (default: True)
         """
         self.router = Router(prefer_local=prefer_local)
-        self.cloud_model = cloud_model
+        import os
+        self.cloud_model = cloud_model or os.getenv("OLLAMA_CLOUD_MODEL", "gpt-oss:20b-cloud")
         self.local_brain: Optional[LocalBrain] = None
         self.cloud_brain: Optional[CloudBrain] = None
         
@@ -143,7 +144,7 @@ class Orchestrator:
                 logger.warning("Cloud Brain not available, falling back to Local Brain")
                 target = InferenceTarget.LOCAL
             else:
-                logger.info("Orchestrator: Using Cloud Burst (Gemini 2.0 Flash)")
+                logger.info(f"Orchestrator: Using Cloud Burst ({self.cloud_model})")
                 response, tool_calls = await self._think_with_tools(
                     enhanced_query,
                     max_tool_iterations,
@@ -224,15 +225,19 @@ class Orchestrator:
         tool_schemas = []
         
         for tool in tools:
-            # Convert to Gemini function declaration format
+            # Convert to OpenAI function calling format
             params = tool.get("parameters", {})
             tool_schemas.append({
-                "name": tool["name"],
-                "description": tool["description"],
-                "parameters": params
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool["description"],
+                    "parameters": params
+                }
             })
         
-        # Maintain conversation history for Gemini API
+        # Maintain conversation history in Gemini format (for backward compatibility)
+        # CloudBrain will convert internally to OpenAI format
         # Format: [{"role": "user", "parts": [...]}, {"role": "model", "parts": [...]}, ...]
         conversation_history: List[Dict[str, Any]] = []
         tool_calls_made = []  # Track tool calls made during this query
