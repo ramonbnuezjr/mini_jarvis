@@ -51,3 +51,5 @@ token.json
 .drive_sync_state.json
 
 .coverage
+*.backup
+.env.backup
